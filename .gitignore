@@ -1,0 +1,30 @@
+# ---- OS / editor cruft ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*~
+
+# ---- Visual Studio / VS Code ----
+.vs/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+
+# ---- Node, if tooling ever gets added ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# ---- deploy / hosting ----
+.netlify/
+dist/
+build/
+
+# ---- local scratch ----
+*.local
+tmp/
+scratch/

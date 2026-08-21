@@ -1,0 +1,33 @@
+{
+  "name": "Endless — Generative Ambient",
+  "short_name": "Endless",
+  "description": "An endless generative ambient music player. Every sound is synthesised in real time — no samples, no loops, never repeats.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "endless-ambient",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07090f",
+  "theme_color": "#07090f",
+  "categories": ["music", "entertainment", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

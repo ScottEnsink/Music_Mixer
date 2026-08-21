@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Endless — Generative Ambient Engine</title>
+<meta name="description" content="An endless generative ambient music player. Every sound is synthesised in real time — no samples, no loops.">
+<meta name="theme-color" content="#07090f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Endless">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{
+    --bg0:#07090f; --bg1:#0d1220; --bg2:#141b2e;
+    --ink:#e8ecf6; --ink-dim:#8994ad; --ink-faint:#5a6480;
+    --accent:#6ee7d7; --accent2:#8b8cf0; --accent3:#f0a3c8;
+    --line:rgba(255,255,255,.09);
+    --panel:rgba(255,255,255,.035);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  html{
+    -webkit-text-size-adjust:100%;          /* stop Chrome inflating text in landscape */
+    overscroll-behavior-y:contain;          /* no pull-to-refresh mid-slider-drag */
+  }
+  body{
+    margin:0; background:
+      radial-gradient(1200px 700px at 15% -10%, #1b2547 0%, transparent 60%),
+      radial-gradient(900px 600px at 100% 110%, #2a1c3d 0%, transparent 55%),
+      linear-gradient(180deg,var(--bg0),var(--bg1) 55%, var(--bg0));
+    color:var(--ink);
+    font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{
+    max-width:1080px;margin:0 auto;
+    padding:calc(28px + env(safe-area-inset-top)) 20px calc(64px + env(safe-area-inset-bottom));
+  }
+  button,select,input,.toggle,.lab{touch-action:manipulation}   /* kill double-tap zoom */
+  button,select,.presets button{user-select:none;-webkit-user-select:none}
+
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+  h1{margin:0;font-size:22px;font-weight:600;letter-spacing:.02em}
+  h1 span{color:var(--accent)}
+  .tag{font-size:12px;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase}
+
+  /* ---- transport ---- */
+  .transport{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:16px 18px;margin-bottom:18px;
+    backdrop-filter:blur(6px);
+  }
+  button.play{
+    appearance:none;border:none;cursor:pointer;
+    width:58px;height:58px;border-radius:50%;flex:0 0 auto;
+    background:linear-gradient(145deg,var(--accent),#3fb9ad);
+    color:#04201d;font-size:20px;display:grid;place-items:center;
+    box-shadow:0 6px 26px -6px rgba(110,231,215,.6);
+    transition:transform .15s ease, box-shadow .2s ease;
+  }
+  button.play:hover{transform:translateY(-1px)}
+  button.play:active{transform:translateY(1px)}
+  button.play.on{background:linear-gradient(145deg,#f0a3c8,#c76fa0);color:#2a0a1c;
+    box-shadow:0 6px 26px -6px rgba(240,163,200,.55)}
+  .status{min-width:190px}
+  .status .now{font-size:15px;font-weight:500}
+  .status .sub{font-size:12px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  canvas{
+    flex:1 1 300px;height:58px;min-width:220px;display:block;
+    border-radius:10px;background:rgba(0,0,0,.25);border:1px solid var(--line);
+  }
+
+  /* ---- presets ---- */
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .presets button{
+    appearance:none;cursor:pointer;font:inherit;font-size:12.5px;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink-dim);
+    padding:7px 14px;border-radius:999px;transition:all .15s ease;
+  }
+  .presets button:hover{color:var(--ink);border-color:rgba(110,231,215,.5);background:rgba(110,231,215,.07)}
+  .presets .dice{
+    display:inline-flex;align-items:center;gap:7px;
+    color:#08211f;font-weight:600;
+    background:linear-gradient(145deg,var(--accent),#4cc3b6);border-color:transparent;
+    margin-right:6px;
+  }
+  .presets .dice:hover{color:#08211f;background:linear-gradient(145deg,#8ff3e5,var(--accent));border-color:transparent}
+  .presets .dice.spin{animation:nudge .4s ease}
+  @keyframes nudge{0%{transform:scale(1)}40%{transform:scale(.93) rotate(-4deg)}100%{transform:scale(1)}}
+  .presets .sep{width:1px;background:var(--line);margin:2px 6px}
+
+  /* ---- panels ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  section.panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px 6px;
+  }
+  section.panel > h2{
+    margin:0 0 14px;font-size:11px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent2);
+  }
+
+  .row{margin-bottom:15px}
+  .row .lab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+  .row .lab b{font-weight:500;font-size:13px}
+  .row .lab i{font-style:normal;font-size:12px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  .hint{font-size:11.5px;color:var(--ink-faint);margin-top:4px}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px;border-radius:99px;background:rgba(255,255,255,.14);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;margin-top:-5.5px;
+    background:var(--accent);border:2px solid #0b1220;
+    box-shadow:0 0 0 3px rgba(110,231,215,.18);
+  }
+  input[type=range]::-moz-range-track{height:4px;border-radius:99px;background:rgba(255,255,255,.14)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);border:2px solid #0b1220;
+  }
+
+  .selects{display:flex;gap:10px;flex-wrap:wrap}
+  .selects label{flex:1 1 120px;display:block}
+  .selects span{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:5px}
+  select{
+    width:100%;font:inherit;font-size:13px;color:var(--ink);
+    background:#131a2c;border:1px solid var(--line);border-radius:9px;padding:7px 9px;cursor:pointer;
+  }
+
+  .toggle{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;margin-bottom:12px}
+  .toggle input{appearance:none;width:38px;height:21px;border-radius:99px;background:rgba(255,255,255,.14);
+    position:relative;cursor:pointer;transition:background .18s ease;flex:0 0 auto}
+  .toggle input::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;
+    background:#fff;transition:transform .18s ease}
+  .toggle input:checked{background:var(--accent)}
+  .toggle input:checked::after{transform:translateX(17px)}
+  .toggle b{font-weight:500;font-size:13px}
+
+  footer{margin-top:26px;font-size:12px;color:var(--ink-faint);line-height:1.7}
+  kbd{font:inherit;font-size:11px;background:rgba(255,255,255,.08);border:1px solid var(--line);
+      border-radius:5px;padding:1px 5px}
+
+  /* ---- touch devices: everything grabbable needs to clear ~44px ---- */
+  @media (pointer: coarse){
+    input[type=range]{height:44px}
+    input[type=range]::-webkit-slider-runnable-track{height:6px}
+    input[type=range]::-webkit-slider-thumb{
+      width:26px;height:26px;margin-top:-10px;box-shadow:0 0 0 5px rgba(110,231,215,.16);
+    }
+    input[type=range]::-moz-range-track{height:6px}
+    input[type=range]::-moz-range-thumb{width:24px;height:24px}
+    .row{margin-bottom:20px}
+    .presets button{padding:11px 18px;font-size:14px}
+    select{padding:12px 10px;font-size:15px}
+    /* the <label> is the real tap target — the switch graphic stays small */
+    .toggle{padding:11px 0;min-height:48px}
+    .toggle input{width:48px;height:27px}
+    .toggle input::after{width:21px;height:21px}
+    .toggle input:checked::after{transform:translateX(21px)}
+    button.play{width:70px;height:70px;font-size:24px}
+    .kb{display:none}                       /* keyboard hints are meaningless on a phone */
+  }
+
+  /* ---- phone layout ---- */
+  @media (max-width: 560px){
+    .wrap{padding-left:14px;padding-right:14px}
+    h1{font-size:20px}
+    .grid{grid-template-columns:1fr;gap:12px}
+    /* Seven stacked panels make for a long scroll — keep play/pause reachable. */
+    .transport{
+      gap:14px;padding:14px;
+      position:sticky;top:0;z-index:20;
+      margin-top:calc(-1 * env(safe-area-inset-top));
+      /* Opaque, not translucent: at 92% the panels underneath ghost through as
+         you scroll. Solid also means no backdrop-filter, which saves GPU work. */
+      background:#0b1020;
+      backdrop-filter:none;
+      box-shadow:0 12px 30px -16px #000;
+    }
+    .status{min-width:0;flex:1 1 auto}
+    canvas{flex:1 1 100%;order:3;height:52px}
+    section.panel{padding:14px 16px 4px}
+    .hint{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Endless<span>.</span></h1>
+    <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
+  </header>
+
+  <div class="transport">
+    <button class="play" id="playBtn" aria-label="Play">&#9654;</button>
+    <div class="status">
+      <div class="now" id="chordLabel">&mdash;</div>
+      <div class="sub" id="timeLabel">press play to begin</div>
+    </div>
+    <canvas id="scope" width="600" height="58"></canvas>
+  </div>
+
+  <div class="presets" id="presets">
+    <button class="dice" id="randomBtn" title="Randomize every setting (R)">
+      <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/>
+        <path d="M15 15l6 6"/><path d="M4 4l5 5"/>
+      </svg>
+      Randomize
+    </button>
+    <div class="sep"></div>
+  </div>
+
+  <div class="grid">
+
+    <section class="panel">
+      <h2>Harmony</h2>
+      <div class="selects" style="margin-bottom:16px">
+        <label><span>Root</span><select id="root"></select></label>
+        <label><span>Scale</span><select id="scale"></select></label>
+      </div>
+      <div class="row" data-param="chordSecs">
+        <div class="lab"><b>Chord change</b><i></i></div>
+        <input type="range" min="6" max="90" step="1">
+        <div class="hint">How long each harmony is held before it drifts to the next.</div>
+      </div>
+      <div class="row" data-param="register">
+        <div class="lab"><b>Register</b><i></i></div>
+        <input type="range" min="-12" max="12" step="1">
+        <div class="hint">Transposes everything in semitones. Lower is heavier.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Tone</h2>
+      <div class="row" data-param="brightness">
+        <div class="lab"><b>Brightness</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Master low-pass. Roll it back for something distant and muffled.</div>
+      </div>
+      <div class="row" data-param="width">
+        <div class="lab"><b>Width</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Oscillator detune spread &mdash; the shimmer and stereo size of the pad.</div>
+      </div>
+      <div class="row" data-param="drift">
+        <div class="lab"><b>Drift</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Depth of the slow modulation. Zero is static; high is restless.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Layers</h2>
+      <div class="row" data-param="pad">
+        <div class="lab"><b>Pad</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+      <div class="row" data-param="choir">
+        <div class="lab"><b>Choir</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Wordless formant voices &mdash; vowel sounds, never words.</div>
+      </div>
+      <div class="row" data-param="sub">
+        <div class="lab"><b>Sub</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+      <div class="row" data-param="texture">
+        <div class="lab"><b>Texture</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Filtered noise: air, wind, distant static.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Bells</h2>
+      <div class="row" data-param="bells">
+        <div class="lab"><b>Level</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+      <div class="row" data-param="density">
+        <div class="lab"><b>Density</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">How often a note is struck, from once a minute to a steady trickle.</div>
+      </div>
+      <div class="row" data-param="timbre">
+        <div class="lab"><b>Timbre</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Pure sine through to metallic, FM-clangorous bell.</div>
+      </div>
+      <div class="row" data-param="decay">
+        <div class="lab"><b>Decay</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Space</h2>
+      <div class="row" data-param="reverb">
+        <div class="lab"><b>Reverb</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+      <div class="row" data-param="echo">
+        <div class="lab"><b>Echo</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+      <div class="row" data-param="echoTime">
+        <div class="lab"><b>Echo time</b><i></i></div>
+        <input type="range" min="0.15" max="1.6" step="0.005">
+      </div>
+      <div class="row" data-param="volume">
+        <div class="lab"><b>Master volume</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Pulse</h2>
+      <label class="toggle"><input type="checkbox" id="pulseOn"><b>Enable pulse</b></label>
+      <div class="row" data-param="bpm">
+        <div class="lab"><b>Tempo</b><i></i></div>
+        <input type="range" min="40" max="150" step="1">
+        <div class="hint">A soft heartbeat under the drone. This is the hook the EDM/trance modes will hang off later.</div>
+      </div>
+      <div class="row" data-param="pulseLevel">
+        <div class="lab"><b>Pulse level</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+      </div>
+      <div class="row" data-param="pulseTone">
+        <div class="lab"><b>Pulse tone</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Round sub-thump through to a clicky, present kick.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Evolution</h2>
+      <div class="row" data-param="randomness">
+        <div class="lab"><b>Randomness</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">
+          How much the whole patch rewrites itself as it plays. At zero it stays exactly where
+          you left it. Turn it up and the sliders start moving on their own &mdash; slowly at
+          first, then restlessly, eventually wandering into new keys and scales.
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:18px">
+        <div class="lab"><b>Next shift</b><i id="mutLabel">&mdash;</i></div>
+        <div class="hint" style="margin-top:0">
+          Master volume is never touched, by either Randomness or Randomize.
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    Every sound here is generated in real time by the Web Audio API &mdash; there are no audio files,
+    so it never loops and never repeats.
+    <span class="kb"><kbd>Space</kbd> toggles playback, <kbd>R</kbd> rolls a new patch.</span>
+    Best with headphones.
+    <span id="installHint" hidden><br>Tip: use your browser's <b>Install app</b> /
+    <b>Add to Home screen</b> menu item to run this full-screen, offline.</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Parameter model
+   ============================================================ */
+
+const PARAMS = {
+  // harmony
+  chordSecs:  { value: 26,   fmt: v => v.toFixed(0) + " s" },
+  register:   { value: 0,    fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
+  // tone
+  brightness: { value: 0.52, fmt: v => hzLabel(brightnessHz(v)) },
+  width:      { value: 0.45, fmt: pct },
+  drift:      { value: 0.5,  fmt: pct },
+  // layers
+  pad:        { value: 0.75, fmt: pct },
+  choir:      { value: 0.35, fmt: pct },
+  sub:        { value: 0.5,  fmt: pct },
+  texture:    { value: 0.28, fmt: pct },
+  // bells
+  bells:      { value: 0.5,  fmt: pct },
+  density:    { value: 0.35, fmt: v => (bellsPerMin(v)).toFixed(1) + " /min" },
+  timbre:     { value: 0.35, fmt: pct },
+  decay:      { value: 0.6,  fmt: v => bellDecay(v).toFixed(1) + " s" },
+  // space
+  reverb:     { value: 0.62, fmt: pct },
+  echo:       { value: 0.3,  fmt: pct },
+  echoTime:   { value: 0.66, fmt: v => (v * 1000).toFixed(0) + " ms" },
+  volume:     { value: 0.7,  fmt: pct },
+  // pulse
+  bpm:        { value: 68,   fmt: v => v.toFixed(0) + " bpm" },
+  pulseLevel: { value: 0.45, fmt: pct },
+  pulseTone:  { value: 0.35, fmt: pct },
+  // evolution
+  randomness: { value: 0,    fmt: v => v <= 0.005 ? "locked" : "every ~" + Math.round(mutInterval(v)) + " s" },
+};
+
+const P = name => PARAMS[name].value;
+
+function pct(v){ return Math.round(v * 100) + "%"; }
+function hzLabel(hz){ return hz >= 1000 ? (hz/1000).toFixed(1) + " kHz" : Math.round(hz) + " Hz"; }
+// perceptual (log) mapping for the master low-pass
+function brightnessHz(v){ return 160 * Math.pow(14000 / 160, v); }
+function bellsPerMin(v){ return 0.6 + v * v * 29; }
+function bellDecay(v){ return 1.2 + v * 10; }
+// Randomness 0.01 -> a shift every ~2 min; 1.0 -> every ~8 s.
+function mutInterval(v){ return 130 * Math.pow(0.062, v); }
+
+/* ============================================================
+   Randomization
+   ------------------------------------------------------------
+   Musically sane bounds, deliberately narrower than the sliders
+   themselves. A uniform 0-1 roll on every parameter mostly yields
+   either silence or mud; these ranges keep every dice roll usable.
+   `volume` is absent on purpose — nothing random ever touches it.
+   ============================================================ */
+
+const RANDOM_BOUNDS = {
+  chordSecs:  [10, 70],
+  register:   [-8, 8],
+  brightness: [0.28, 0.86],
+  width:      [0.15, 0.90],
+  drift:      [0.20, 0.90],
+  pad:        [0.40, 1.00],
+  choir:      [0.05, 0.85],
+  sub:        [0.20, 0.80],
+  texture:    [0.05, 0.60],
+  bells:      [0.20, 0.85],
+  density:    [0.05, 0.75],
+  timbre:     [0.05, 0.90],
+  decay:      [0.25, 0.95],
+  reverb:     [0.30, 0.95],
+  echo:       [0.05, 0.75],
+  echoTime:   [0.20, 1.40],
+  bpm:        [52, 136],
+  pulseLevel: [0.20, 0.70],
+  pulseTone:  [0.10, 0.85],
+};
+
+const INTEGER_PARAMS = { chordSecs: 1, register: 1, bpm: 1 };
+
+// Eased continuously by the Randomness slider.
+const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
+                        "bells","density","timbre","decay","reverb","echo","echoTime",
+                        "chordSecs","pulseLevel","pulseTone"];
+
+function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
+
+function roll(name){
+  const b = RANDOM_BOUNDS[name];
+  if (!b) return PARAMS[name].value;
+  let v = b[0] + Math.random() * (b[1] - b[0]);
+  if (INTEGER_PARAMS[name]) v = Math.round(v);
+  return v;
+}
+
+/* ============================================================
+   Music theory
+   ============================================================ */
+
+const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+const SCALES = {
+  "Aeolian (natural minor)": [0,2,3,5,7,8,10],
+  "Dorian":                  [0,2,3,5,7,9,10],
+  "Lydian":                  [0,2,4,6,7,9,11],
+  "Phrygian":                [0,1,3,5,7,8,10],
+  "Major (Ionian)":          [0,2,4,5,7,9,11],
+  "Minor pentatonic":        [0,3,5,7,10],
+  "Japanese (Hirajoshi)":    [0,2,3,7,8],
+  "Whole tone":              [0,2,4,6,8,10],
+};
+
+let rootPc = 9;                              // A
+let scaleName = "Aeolian (natural minor)";
+const scaleSteps = () => SCALES[scaleName];
+
+// Walk the scale in a slow, mostly-stepwise way so successive chords share tones.
+const DEGREE_WALK = [0, 5, 3, 4, 1, 5, 2, 4, 0, 3];
+let walkIndex = 0;
+
+function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+// Scale degree -> MIDI note, wrapping into octaves.
+function degreeToMidi(degree, baseOctaveMidi){
+  const steps = scaleSteps();
+  const n = steps.length;
+  const oct = Math.floor(degree / n);
+  const idx = ((degree % n) + n) % n;
+  return baseOctaveMidi + rootPc + steps[idx] + 12 * oct;
+}
+
+/* Build the next chord: four stacked scale tones spread across two octaves. */
+function nextChord(){
+  const degree = DEGREE_WALK[walkIndex % DEGREE_WALK.length];
+  walkIndex++;
+  const base = 36 + Math.round(P("register"));      // C2-ish + transpose
+  const voicing = [0, 2, 4, 6];                     // 7th-chord shape in scale steps
+  const notes = voicing.map((v, i) => degreeToMidi(degree + v, base + (i >= 2 ? 12 : 0)));
+  return { degree, notes };
+}
+
+function chordLabel(chord){
+  const steps = scaleSteps();
+  const pc = (rootPc + steps[((chord.degree % steps.length) + steps.length) % steps.length]
+              + Math.round(P("register"))) % 12;
+  return NOTE_NAMES[(pc + 12) % 12] + " · " + scaleName.split(" ")[0];
+}
+
+/* ============================================================
+   Audio engine
+   ============================================================ */
+
+const NUM_PAD_VOICES = 4;
+const OSC_PER_VOICE  = 3;
+const NUM_CHOIR      = 2;
+
+// Vowel formant triples (Hz) — morphed between for slow movement.
+const VOWELS = [
+  [ 730, 1090, 2440 ], // "ah"
+  [ 300,  870, 2240 ], // "oo"
+  [ 530, 1840, 2480 ], // "eh"
+  [ 400, 1920, 2560 ], // "ih"
+];
+
+let ctx = null;
+let running = false;
+let startedAt = 0;
+
+const nodes = {};       // shared graph nodes
+const padVoices = [];
+const choirVoices = [];
+const driftLFOs = [];   // { gain, depth } — depth scaled by the Drift slider
+
+let currentChord = null;
+let nextChordTime = 0;
+let nextBellTime = 0;
+let nextPulseTime = 0;
+let schedulerTimer = null;
+let lastTick = 0;
+
+const LOOKAHEAD = 1.5;      // seconds of audio scheduled in advance, foreground
+const TICK_MS   = 200;
+
+/* Browsers throttle setInterval in hidden/backgrounded tabs — on Android that can
+   drop to roughly one tick per second, and harder still once the screen locks. The
+   audio graph keeps running regardless, so we simply queue far more of it in advance
+   when we're not visible. Costs responsiveness (slider moves take longer to reach the
+   bells) but that only applies when nobody is looking at the sliders. */
+const LOOKAHEAD_HIDDEN = 10;
+function lookahead(){ return document.hidden ? LOOKAHEAD_HIDDEN : LOOKAHEAD; }
+
+/* Phones get a shorter reverb tail. Convolution cost scales with impulse length and
+   it is by far the most expensive node in the graph — 7.5 s of stereo IR will chew
+   through a battery and can crackle on mid-range hardware. */
+const IS_TOUCH = window.matchMedia("(pointer: coarse)").matches;
+const LOW_POWER = IS_TOUCH || (navigator.hardwareConcurrency || 8) <= 4;
+const REVERB_SECONDS = LOW_POWER ? 3.6 : 7.5;
+
+let wakeLock = null;        // Screen Wake Lock sentinel, while playing
+let keepAlive = null;       // silent <audio> element that holds the media session
+
+/* ---------- helpers ---------- */
+
+function glide(param, target, seconds){
+  const now = ctx.currentTime;
+  param.cancelScheduledValues(now);
+  param.setValueAtTime(param.value, now);
+  param.linearRampToValueAtTime(target, now + seconds);
+}
+function smooth(param, target, tc){
+  param.setTargetAtTime(target, ctx.currentTime, tc || 0.08);
+}
+// Makeup gain after the limiter. Tuned so the default patch lands near -15 LUFS,
+// close to the streaming norm, while the limiter still catches bell/pulse transients.
+const MAKEUP = 3.4;
+function masterTarget(){ return P("volume") * P("volume") * MAKEUP; }
+
+function rand(a, b){ return a + Math.random() * (b - a); }
+function choice(arr){ return arr[(Math.random() * arr.length) | 0]; }
+
+/* Transparent below `linear`, then tanh-compressed with a hard asymptote at 1.0. */
+function makeSoftClipCurve(linear){
+  const n = 8192;
+  const c = new Float32Array(n);
+  const span = 1 - linear;
+  for (let i = 0; i < n; i++){
+    const x = (i / (n - 1)) * 2 - 1;              // -1 .. 1
+    const a = Math.abs(x);
+    const y = a <= linear ? a : linear + span * Math.tanh((a - linear) / span);
+    c[i] = Math.sign(x) * y;
+  }
+  return c;
+}
+
+/* ---------- impulse response for the convolver ---------- */
+
+function makeReverbIR(seconds, decay, damping){
+  const len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++){
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < len; i++){
+      const t = i / len;
+      const noise = Math.random() * 2 - 1;
+      lp += damping * (noise - lp);                 // one-pole low-pass => darker tail
+      // slight pre-delay swell so the onset isn't a click
+      const swell = Math.min(1, i / (ctx.sampleRate * 0.02));
+      d[i] = lp * Math.pow(1 - t, decay) * swell;
+    }
+  }
+  return buf;
+}
+
+function makeNoiseBuffer(seconds){
+  const len = Math.floor(ctx.sampleRate * seconds);
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++){
+    const d = buf.getChannelData(ch);
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < len; i++){
+      const w = Math.random() * 2 - 1;
+      // cheap pink-ish filter — less harsh than white
+      b0 = 0.99765 * b0 + w * 0.0990460;
+      b1 = 0.96300 * b1 + w * 0.2965164;
+      b2 = 0.57000 * b2 + w * 1.0526913;
+      d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.12;
+    }
+  }
+  return buf;
+}
+
+/* ---------- graph construction ---------- */
+
+function buildGraph(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  ctx = new AC({ latencyHint: "playback" });
+
+  /* Master chain. Order matters: the volume/makeup gain sits BEFORE the limiter
+     so the limiter is the last thing that sets level and can actually hold the
+     ceiling. A soft-clip shaper after it guarantees we never exceed 0 dBFS even
+     with every layer slammed. */
+  nodes.bus       = ctx.createGain();
+  nodes.tone      = ctx.createBiquadFilter();
+  nodes.vol       = ctx.createGain();
+  nodes.limiter   = ctx.createDynamicsCompressor();
+  nodes.safety    = ctx.createWaveShaper();
+  nodes.master    = ctx.createGain();
+  nodes.analyser  = ctx.createAnalyser();
+
+  nodes.tone.type = "lowpass";
+  nodes.tone.frequency.value = brightnessHz(P("brightness"));
+  nodes.tone.Q.value = 0.4;
+
+  nodes.vol.gain.value = masterTarget();
+
+  nodes.limiter.threshold.value = -1;
+  nodes.limiter.knee.value = 0;
+  nodes.limiter.ratio.value = 20;
+  nodes.limiter.attack.value = 0.003;
+  nodes.limiter.release.value = 0.25;
+
+  nodes.safety.curve = makeSoftClipCurve(0.6);
+  nodes.safety.oversample = "2x";
+
+  nodes.master.gain.value = 0;                  // fade handle, 0 -> 1 on play
+  nodes.analyser.fftSize = 2048;
+  nodes.analyser.smoothingTimeConstant = 0.82;
+
+  nodes.bus.connect(nodes.tone);
+  nodes.tone.connect(nodes.vol);
+  nodes.vol.connect(nodes.limiter);
+  nodes.limiter.connect(nodes.safety);
+  nodes.safety.connect(nodes.master);
+  nodes.master.connect(nodes.analyser);
+  nodes.analyser.connect(ctx.destination);
+
+  // --- reverb send
+  nodes.revSend = ctx.createGain();
+  nodes.revSend.gain.value = 1;
+  nodes.convolver = ctx.createConvolver();
+  nodes.convolver.buffer = makeReverbIR(REVERB_SECONDS, 2.6, 0.30);
+  nodes.revWet = ctx.createGain();
+  nodes.revWet.gain.value = P("reverb");
+  nodes.revSend.connect(nodes.convolver);
+  nodes.convolver.connect(nodes.revWet);
+  nodes.revWet.connect(nodes.bus);
+
+  // --- feedback delay send
+  nodes.dlySend = ctx.createGain();
+  nodes.dlySend.gain.value = P("echo");
+  nodes.delay = ctx.createDelay(2.0);
+  nodes.delay.delayTime.value = P("echoTime");
+  nodes.dlyFb = ctx.createGain();
+  nodes.dlyFb.gain.value = 0.55;
+  nodes.dlyDamp = ctx.createBiquadFilter();
+  nodes.dlyDamp.type = "lowpass";
+  nodes.dlyDamp.frequency.value = 2600;
+
+  nodes.dlySend.connect(nodes.delay);
+  nodes.delay.connect(nodes.dlyDamp);
+  nodes.dlyDamp.connect(nodes.dlyFb);
+  nodes.dlyFb.connect(nodes.delay);            // feedback loop
+  nodes.dlyDamp.connect(nodes.bus);
+  // echoes also feed the reverb, which is where the "shimmer" comes from
+  nodes.dlyDamp.connect(nodes.revSend);
+
+  nodes.noiseBuffer = makeNoiseBuffer(4);
+
+  buildPad();
+  buildChoir();
+  buildSub();
+  buildTexture();
+  buildPulseChain();
+}
+
+/* Slow LFO helper. Returns the depth gain so Drift can scale it. */
+function makeLFO(rateHz, depth, target, phaseOffset){
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = rateHz;
+  const g = ctx.createGain();
+  g.gain.value = depth * P("drift");
+  osc.connect(g);
+  g.connect(target);
+  // stagger phases so layers don't breathe in lockstep
+  osc.start(ctx.currentTime + (phaseOffset || 0));
+  driftLFOs.push({ gain: g, depth: depth });
+  return g;
+}
+
+function buildPad(){
+  nodes.padGain = ctx.createGain();
+  nodes.padGain.gain.value = P("pad") * 0.22;
+  nodes.padGain.connect(nodes.bus);
+  nodes.padGain.connect(nodes.revSend);
+
+  for (let i = 0; i < NUM_PAD_VOICES; i++){
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = rand(500, 1400);
+    filter.Q.value = 1.1;
+
+    const amp = ctx.createGain();
+    amp.gain.value = 1 / NUM_PAD_VOICES;
+
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = (i / (NUM_PAD_VOICES - 1)) * 1.4 - 0.7;
+
+    filter.connect(amp);
+    amp.connect(pan);
+    pan.connect(nodes.padGain);
+
+    const oscs = [];
+    for (let k = 0; k < OSC_PER_VOICE; k++){
+      const osc = ctx.createOscillator();
+      osc.type = k === 0 ? "sawtooth" : "triangle";
+      osc.frequency.value = 110;
+      // symmetric spread: -1, 0, +1 ...
+      osc._spread = k - (OSC_PER_VOICE - 1) / 2;
+      osc.detune.value = osc._spread * P("width") * 34;
+      const og = ctx.createGain();
+      og.gain.value = (k === 0 ? 0.5 : 0.32) / OSC_PER_VOICE;
+      osc.connect(og);
+      og.connect(filter);
+      osc.start();
+      oscs.push(osc);
+    }
+
+    // filter sweep + amplitude breathing, both scaled by Drift
+    makeLFO(rand(0.013, 0.055), 900, filter.detune, rand(0, 4));
+    makeLFO(rand(0.02, 0.07), 0.45 / NUM_PAD_VOICES, amp.gain, rand(0, 4));
+
+    padVoices.push({ oscs, filter, amp, pan });
+  }
+}
+
+function buildChoir(){
+  nodes.choirGain = ctx.createGain();
+  nodes.choirGain.gain.value = P("choir") * 0.16;
+  nodes.choirGain.connect(nodes.bus);
+  nodes.choirGain.connect(nodes.revSend);
+
+  for (let i = 0; i < NUM_CHOIR; i++){
+    const src = ctx.createGain();          // sums this voice's oscillators
+    const out = ctx.createGain();
+    out.gain.value = 1 / NUM_CHOIR;
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = i === 0 ? -0.4 : 0.4;
+
+    // three parallel band-passes = vowel formants (never a word, just a vowel)
+    const formants = VOWELS[0].map((f, fi) => {
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = f;
+      bp.Q.value = 7 + fi * 2;
+      const g = ctx.createGain();
+      g.gain.value = [1, 0.55, 0.3][fi];
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(out);
+      return bp;
+    });
+
+    out.connect(pan);
+    pan.connect(nodes.choirGain);
+
+    const oscs = [];
+    for (let k = 0; k < 2; k++){
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = 220;
+      osc._spread = k === 0 ? -1 : 1;
+      osc.detune.value = osc._spread * (6 + P("width") * 14);
+      const og = ctx.createGain();
+      og.gain.value = 0.5;
+      osc.connect(og);
+      og.connect(src);
+      osc.start();
+      oscs.push(osc);
+      // gentle vibrato keeps it from sounding like a synth pad
+      const vib = ctx.createOscillator();
+      vib.type = "sine";
+      vib.frequency.value = rand(3.5, 5.2);
+      const vg = ctx.createGain();
+      vg.gain.value = rand(3, 7);
+      vib.connect(vg);
+      vg.connect(osc.detune);
+      vib.start();
+    }
+
+    makeLFO(rand(0.015, 0.05), 0.5 / NUM_CHOIR, out.gain, rand(0, 5));
+
+    choirVoices.push({ oscs, formants, out, pan, vowel: 0 });
+  }
+}
+
+function buildSub(){
+  nodes.subGain = ctx.createGain();
+  nodes.subGain.gain.value = P("sub") * 0.30;
+  nodes.subGain.connect(nodes.bus);
+
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = 55;
+  const shaper = ctx.createGain();
+  shaper.gain.value = 0.8;
+  osc.connect(shaper);
+  shaper.connect(nodes.subGain);
+  osc.start();
+
+  makeLFO(rand(0.01, 0.03), 0.35, shaper.gain, 0);
+  nodes.subOsc = osc;
+}
+
+function buildTexture(){
+  nodes.texGain = ctx.createGain();
+  nodes.texGain.gain.value = P("texture") * 0.30;
+  nodes.texGain.connect(nodes.bus);
+  nodes.texGain.connect(nodes.revSend);
+
+  const src = ctx.createBufferSource();
+  src.buffer = nodes.noiseBuffer;
+  src.loop = true;
+
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = 700;
+  bp.Q.value = 1.4;
+
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 180;
+
+  src.connect(bp);
+  bp.connect(hp);
+  hp.connect(nodes.texGain);
+  src.start();
+
+  makeLFO(rand(0.008, 0.025), 1500, bp.detune, 0);
+  makeLFO(rand(0.01, 0.04), 0.5, nodes.texGain.gain, 2);
+  nodes.texFilter = bp;
+}
+
+function buildPulseChain(){
+  nodes.pulseGain = ctx.createGain();
+  nodes.pulseGain.gain.value = P("pulseLevel") * 0.7;
+  nodes.pulseGain.connect(nodes.bus);
+  const send = ctx.createGain();
+  send.gain.value = 0.25;
+  nodes.pulseGain.connect(send);
+  send.connect(nodes.revSend);
+}
+
+/* ---------- one-shot voices ---------- */
+
+function playBell(time, midi){
+  const level = P("bells");
+  if (level <= 0.001) return;
+
+  const freq = midiToHz(midi);
+  const rel  = bellDecay(P("decay"));
+  const tim  = P("timbre");
+
+  const carrier = ctx.createOscillator();
+  carrier.type = "sine";
+  carrier.frequency.value = freq;
+
+  // FM partial: ratio climbs with Timbre, giving sine -> metallic
+  const mod = ctx.createOscillator();
+  mod.type = "sine";
+  mod.frequency.value = freq * (1.41 + tim * 5.6);
+  const modDepth = ctx.createGain();
+  modDepth.gain.setValueAtTime(freq * tim * 2.2, time);
+  modDepth.gain.exponentialRampToValueAtTime(0.0001, time + rel * 0.35);
+  mod.connect(modDepth);
+  modDepth.connect(carrier.frequency);
+
+  const vca = ctx.createGain();
+  vca.gain.setValueAtTime(0.0001, time);
+  vca.gain.exponentialRampToValueAtTime(level * 0.30, time + 0.012);
+  vca.gain.exponentialRampToValueAtTime(0.0001, time + rel);
+
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.setValueAtTime(Math.min(16000, freq * (6 + tim * 14)), time);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(220, freq * 1.6), time + rel * 0.8);
+
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = rand(-0.75, 0.75);
+
+  const dry = ctx.createGain();
+  dry.gain.value = 0.55;
+
+  carrier.connect(vca);
+  vca.connect(lp);
+  lp.connect(pan);
+  pan.connect(dry);
+  dry.connect(nodes.bus);
+  pan.connect(nodes.revSend);
+  pan.connect(nodes.dlySend);
+
+  carrier.start(time);
+  mod.start(time);
+  const stop = time + rel + 0.15;
+  carrier.stop(stop);
+  mod.stop(stop);
+  carrier.onended = () => {
+    [carrier, mod, modDepth, vca, lp, pan, dry].forEach(n => { try { n.disconnect(); } catch(e){} });
+  };
+}
+
+function playPulse(time){
+  const lvl = P("pulseLevel");
+  if (lvl <= 0.001) return;
+  const tone = P("pulseTone");
+
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  const f0 = 120 + tone * 130;
+  osc.frequency.setValueAtTime(f0, time);
+  osc.frequency.exponentialRampToValueAtTime(38 + tone * 14, time + 0.09 + (1 - tone) * 0.09);
+
+  const vca = ctx.createGain();
+  const dur = 0.30 + (1 - tone) * 0.5;
+  vca.gain.setValueAtTime(0.0001, time);
+  vca.gain.exponentialRampToValueAtTime(lvl * 0.55, time + 0.004);
+  vca.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+  osc.connect(vca);
+  vca.connect(nodes.pulseGain);
+
+  // a whisper of click on top when Pulse tone is high
+  if (tone > 0.25){
+    const n = ctx.createBufferSource();
+    n.buffer = nodes.noiseBuffer;
+    n.loop = true;
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 1400;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(lvl * (tone - 0.25) * 0.5, time);
+    ng.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+    n.connect(hp); hp.connect(ng); ng.connect(nodes.pulseGain);
+    n.start(time); n.stop(time + 0.08);
+    n.onended = () => { try { n.disconnect(); hp.disconnect(); ng.disconnect(); } catch(e){} };
+  }
+
+  osc.start(time);
+  osc.stop(time + dur + 0.05);
+  osc.onended = () => { try { osc.disconnect(); vca.disconnect(); } catch(e){} };
+}
+
+/* ---------- harmony application ---------- */
+
+function applyChord(chord, glideSecs){
+  currentChord = chord;
+  const notes = chord.notes;
+
+  padVoices.forEach((v, i) => {
+    const hz = midiToHz(notes[i % notes.length]);
+    v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs));
+    glide(v.filter.frequency, hz * rand(4, 9), glideSecs);
+  });
+
+  // choir sits an octave above, on the root and the chord's third
+  choirVoices.forEach((v, i) => {
+    const m = notes[i === 0 ? 0 : 1] + 12;
+    v.oscs.forEach(osc => glide(osc.frequency, midiToHz(m), glideSecs));
+    // morph to a new vowel with each chord
+    const nv = (v.vowel + 1 + ((Math.random() * 2) | 0)) % VOWELS.length;
+    v.vowel = nv;
+    v.formants.forEach((bp, fi) => glide(bp.frequency, VOWELS[nv][fi], glideSecs));
+  });
+
+  if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(notes[0] - 12), glideSecs);
+
+  const el = document.getElementById("chordLabel");
+  if (el) el.textContent = chordLabel(chord);
+}
+
+/* ---------- scheduler ---------- */
+
+function scheduleAhead(){
+  if (!running) return;
+  const horizon = ctx.currentTime + lookahead();
+
+  // harmony
+  if (ctx.currentTime >= nextChordTime){
+    const secs = P("chordSecs");
+    applyChord(nextChord(), Math.min(secs * 0.5, 9));
+    nextChordTime = ctx.currentTime + secs;
+  }
+
+  // bells
+  while (nextBellTime < horizon){
+    if (nextBellTime > ctx.currentTime && currentChord){
+      const steps = scaleSteps();
+      // draw from the current chord plus higher scale tones
+      const deg = currentChord.degree + choice([0, 2, 4, 6, 7, 9, 11]);
+      const oct = choice([12, 12, 24, 24, 36]);
+      const midi = degreeToMidi(deg, 36 + Math.round(P("register"))) + oct;
+      playBell(nextBellTime, midi);
+      // occasional grace note a beat behind
+      if (Math.random() < 0.22){
+        playBell(nextBellTime + rand(0.28, 0.9),
+                 degreeToMidi(deg + choice([1, 2, -2]), 36 + Math.round(P("register"))) + oct);
+      }
+    }
+    const mean = 60 / bellsPerMin(P("density"));
+    nextBellTime += mean * rand(0.45, 1.75);       // humanised, never metronomic
+  }
+
+  // pulse
+  if (document.getElementById("pulseOn").checked){
+    const spb = 60 / P("bpm");
+    if (nextPulseTime < ctx.currentTime) nextPulseTime = ctx.currentTime + 0.05;
+    while (nextPulseTime < horizon){
+      playPulse(nextPulseTime);
+      nextPulseTime += spb;
+    }
+  } else {
+    nextPulseTime = 0;
+  }
+
+  // autonomous drift driven by the Randomness slider
+  const now = ctx.currentTime;
+  const dt = lastTick ? Math.min(3, now - lastTick) : TICK_MS / 1000;
+  lastTick = now;
+  mutateTick(dt);
+
+  const t = Math.floor(ctx.currentTime - startedAt);
+  const lbl = document.getElementById("timeLabel");
+  if (lbl){
+    const mm = String(Math.floor(t / 60)).padStart(2, "0");
+    const ss = String(t % 60).padStart(2, "0");
+    lbl.textContent = mm + ":" + ss + " · streaming";
+  }
+}
+
+/* ============================================================
+   Mobile plumbing: keep the screen awake, keep audio alive when
+   backgrounded, and put controls on the lock screen.
+   ============================================================ */
+
+/* A few seconds of silent WAV, built in memory — no asset to ship.
+   An <audio> element with real (if silent) content playing is what makes the
+   browser treat this page as a media session, which is what gets us lock-screen
+   controls and keeps the tab off the aggressive-throttling list. */
+function silentWavURL(seconds){
+  const sr = 8000, n = sr * seconds;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const str = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  str(0, "RIFF");  v.setUint32(4, 36 + n * 2, true);   str(8, "WAVE");
+  str(12, "fmt "); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, "data"); v.setUint32(40, n * 2, true);       // samples left at zero = silence
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+
+function startKeepAlive(){
+  try {
+    if (!keepAlive){
+      keepAlive = new Audio(silentWavURL(4));
+      keepAlive.loop = true;
+      keepAlive.volume = 0;                 // belt and braces; the content is silent anyway
+      keepAlive.setAttribute("playsinline", "");
+    }
+    const p = keepAlive.play();
+    if (p && p.catch) p.catch(() => {});    // blocked without a gesture; not fatal
+  } catch(e){ /* no media element support — audio still works, just no lock screen */ }
+}
+
+function stopKeepAlive(){
+  try { if (keepAlive) keepAlive.pause(); } catch(e){}
+}
+
+function setupMediaSession(){
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: "Endless",
+      artist: "Generative ambient",
+      album: "Synthesised live — never repeats",
+      artwork: [
+        { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      ],
+    });
+    const set = (action, fn) => { try { navigator.mediaSession.setActionHandler(action, fn); } catch(e){} };
+    set("play",  () => { if (!running) start(); });
+    set("pause", () => { if (running) stop(); });
+    set("stop",  () => { if (running) stop(); });
+    set("nexttrack",     () => randomizeAll());   // "skip" = roll a new patch
+    set("previoustrack", () => randomizeAll());
+  } catch(e){}
+}
+
+function setPlaybackState(state){
+  if ("mediaSession" in navigator){
+    try { navigator.mediaSession.playbackState = state; } catch(e){}
+  }
+}
+
+async function requestWakeLock(){
+  if (!("wakeLock" in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => { wakeLock = null; });
+  } catch(e){ wakeLock = null; }   // denied, or battery saver is on
+}
+
+function releaseWakeLock(){
+  try { if (wakeLock) wakeLock.release(); } catch(e){}
+  wakeLock = null;
+}
+
+/* Coming back to the tab: the wake lock is always dropped on hide, and some
+   browsers suspend the AudioContext too. Re-acquire both. */
+function onVisibilityChange(){
+  if (document.hidden || !running) return;
+  if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+  if (!wakeLock) requestWakeLock();
+  startKeepAlive();
+}
+
+function registerServiceWorker(){
+  // file:// has no service worker support, so this is a no-op when opened directly.
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+/* ---------- transport ---------- */
+
+async function start(){
+  if (!ctx) buildGraph();
+  if (ctx.state === "suspended") await ctx.resume();
+
+  running = true;
+  startedAt = ctx.currentTime;
+  nextChordTime = 0;
+  nextBellTime = ctx.currentTime + 2.5;
+  nextPulseTime = 0;
+  walkIndex = 0;
+  lastTick = 0;
+  nextMutTime = 0;
+  mutTargets = {};
+
+  applyChord(nextChord(), 0.05);
+  nextChordTime = ctx.currentTime + P("chordSecs");
+
+  smooth(nodes.vol.gain, masterTarget(), 0.2);
+  smooth(nodes.master.gain, 1, 1.6);
+
+  if (schedulerTimer) clearInterval(schedulerTimer);
+  schedulerTimer = setInterval(scheduleAhead, TICK_MS);
+  scheduleAhead();
+
+  const b = document.getElementById("playBtn");
+  b.innerHTML = "&#10073;&#10073;";
+  b.classList.add("on");
+  b.setAttribute("aria-label", "Pause");
+  drawScope();
+
+  // mobile: hold the screen on, claim the media session, offer lock-screen controls
+  startKeepAlive();
+  setupMediaSession();
+  setPlaybackState("playing");
+  requestWakeLock();
+}
+
+function stop(){
+  running = false;
+  if (schedulerTimer){ clearInterval(schedulerTimer); schedulerTimer = null; }
+  if (nodes.master) smooth(nodes.master.gain, 0, 0.7);
+  const b = document.getElementById("playBtn");
+  b.innerHTML = "&#9654;";
+  b.classList.remove("on");
+  b.setAttribute("aria-label", "Play");
+  const lbl = document.getElementById("timeLabel");
+  if (lbl) lbl.textContent = "paused";
+
+  stopKeepAlive();
+  setPlaybackState("paused");
+  releaseWakeLock();
+}
+
+/* ---------- live parameter routing ---------- */
+
+function applyParam(name){
+  if (!ctx) return;
+  const v = P(name);
+  switch (name){
+    case "volume":     smooth(nodes.vol.gain, masterTarget(), 0.15); break;
+    case "brightness": smooth(nodes.tone.frequency, brightnessHz(v), 0.2); break;
+    case "reverb":     smooth(nodes.revWet.gain, v, 0.25); break;
+    case "echo":       smooth(nodes.dlySend.gain, v * 0.8, 0.25); break;
+    case "echoTime":   smooth(nodes.delay.delayTime, v, 0.4); break;
+    case "pad":        smooth(nodes.padGain.gain, v * 0.22, 0.2); break;
+    case "choir":      smooth(nodes.choirGain.gain, v * 0.16, 0.3); break;
+    case "sub":        smooth(nodes.subGain.gain, v * 0.30, 0.3); break;
+    case "texture":    smooth(nodes.texGain.gain, v * 0.30, 0.3); break;
+    case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
+    case "drift":
+      driftLFOs.forEach(l => smooth(l.gain.gain, l.depth * v, 0.4));
+      break;
+    case "width":
+      padVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * v * 34, 0.3)));
+      choirVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * (6 + v * 14), 0.3)));
+      break;
+    case "register":
+      if (currentChord) applyChord(nextChord(), 3.5);
+      break;
+    case "randomness":
+      // Turning this up must not leave us waiting out the old, slower interval.
+      if (v > 0.005){
+        const iv = mutInterval(v);
+        const t = ctx.currentTime;
+        if (nextMutTime === 0 || nextMutTime - t > iv) nextMutTime = t + iv * rand(0.25, 0.8);
+      }
+      break;
+    // chordSecs, density, timbre, decay, bells, bpm, pulseTone are read at schedule time
+  }
+}
+
+/* ============================================================
+   UI wiring
+   ============================================================ */
+
+function initSliders(){
+  document.querySelectorAll(".row[data-param]").forEach(row => {
+    const name = row.dataset.param;
+    const input = row.querySelector("input[type=range]");
+    const out = row.querySelector(".lab i");
+    const spec = PARAMS[name];
+    if (!spec) return;
+    input.value = spec.value;
+    out.textContent = spec.fmt(spec.value);
+    input.addEventListener("input", () => {
+      spec.value = parseFloat(input.value);
+      out.textContent = spec.fmt(spec.value);
+      applyParam(name);
+      // a couple of labels depend on other params
+      if (name === "register" || name === "brightness") refreshLabels();
+    });
+    spec._input = input;
+    spec._out = out;
+  });
+}
+
+function refreshLabels(){
+  Object.keys(PARAMS).forEach(k => {
+    const s = PARAMS[k];
+    if (s._out) s._out.textContent = s.fmt(s.value);
+  });
+}
+
+function setParams(obj){
+  Object.keys(obj).forEach(k => {
+    const s = PARAMS[k];
+    if (!s) return;
+    s.value = obj[k];
+    if (s._input) s._input.value = obj[k];
+    applyParam(k);
+  });
+  refreshLabels();
+}
+
+/* Push a param's current value back out to its slider + readout. */
+function syncSlider(name){
+  const s = PARAMS[name];
+  if (!s) return;
+  if (s._input) s._input.value = s.value;
+  if (s._out) s._out.textContent = s.fmt(s.value);
+}
+
+function setSelects(){
+  const r = document.getElementById("root");
+  const sc = document.getElementById("scale");
+  if (r) r.value = String(rootPc);
+  if (sc) sc.value = scaleName;
+}
+
+/* ---------- Randomize: one roll of everything ---------- */
+
+function randomizeAll(){
+  Object.keys(RANDOM_BOUNDS).forEach(name => {
+    PARAMS[name].value = roll(name);
+    syncSlider(name);
+    if (name !== "register") applyParam(name);   // register handled once, below
+  });
+
+  rootPc = (Math.random() * 12) | 0;
+  const scaleKeys = Object.keys(SCALES);
+  scaleName = scaleKeys[(Math.random() * scaleKeys.length) | 0];
+  walkIndex = (Math.random() * 10) | 0;
+  setSelects();
+
+  const pulse = document.getElementById("pulseOn");
+  if (pulse){
+    pulse.checked = Math.random() < 0.35;
+    nextPulseTime = 0;
+  }
+
+  // one harmony rebuild covers the new root, scale and register together
+  if (ctx && currentChord) applyChord(nextChord(), 2.5);
+
+  mutTargets = {};                                // abandon any in-flight drift
+  if (ctx) nextMutTime = ctx.currentTime + mutInterval(P("randomness"));
+
+  const b = document.getElementById("randomBtn");
+  if (b){ b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin"); }
+}
+
+/* ---------- Randomness: autonomous drift over time ---------- */
+
+let mutTargets = {};
+let nextMutTime = 0;
+
+/* Choose a handful of parameters and set new targets near their current values.
+   Bounded deltas, so the patch wanders rather than teleporting. */
+function pickMutations(r){
+  const count = 1 + Math.round(r * 3);
+  const pool = MUT_CONTINUOUS.slice();
+  for (let i = 0; i < count && pool.length; i++){
+    const name = pool.splice((Math.random() * pool.length) | 0, 1)[0];
+    const b = RANDOM_BOUNDS[name];
+    if (!b) continue;
+    const span = b[1] - b[0];
+    const step = (0.10 + r * 0.55) * span * rand(-1, 1);
+    mutTargets[name] = clamp(PARAMS[name].value + step, b[0], b[1]);
+  }
+
+  // Bigger, rarer structural moves — scaled hard by Randomness so a low
+  // setting never yanks you into another key.
+  if (Math.random() < r * 0.40){
+    const b = RANDOM_BOUNDS.register;
+    PARAMS.register.value = clamp(PARAMS.register.value + choice([-5,-3,-2,2,3,5]), b[0], b[1]);
+    syncSlider("register");
+    if (ctx && currentChord) applyChord(nextChord(), 4);
+  }
+  if (Math.random() < r * 0.22){
+    const keys = Object.keys(SCALES);
+    scaleName = keys[(Math.random() * keys.length) | 0];
+    setSelects();
+  }
+  if (Math.random() < r * 0.16){
+    rootPc = (rootPc + choice([5, 7, 2, 10])) % 12;
+    setSelects();
+  }
+  if (Math.random() < r * 0.30){
+    const b = RANDOM_BOUNDS.bpm;
+    PARAMS.bpm.value = Math.round(clamp(PARAMS.bpm.value + rand(-14, 14), b[0], b[1]));
+    syncSlider("bpm");
+  }
+}
+
+function mutateTick(dt){
+  const r = P("randomness");
+  const lbl = document.getElementById("mutLabel");
+
+  if (r <= 0.005){
+    mutTargets = {};
+    if (lbl) lbl.textContent = "held";
+    return;
+  }
+
+  const interval = mutInterval(r);
+  if (nextMutTime === 0 || ctx.currentTime >= nextMutTime){
+    nextMutTime = ctx.currentTime + interval * rand(0.6, 1.45);
+    pickMutations(r);
+  }
+  if (lbl) lbl.textContent = Math.max(0, Math.round(nextMutTime - ctx.currentTime)) + " s";
+
+  // Ease toward targets. tau tied to the interval so fast settings move fast.
+  const tau = Math.max(1.2, interval * 0.40);
+  const alpha = 1 - Math.exp(-dt / tau);
+  Object.keys(mutTargets).forEach(name => {
+    const s = PARAMS[name];
+    if (!s) return;
+    const tgt = mutTargets[name];
+    if (Math.abs(tgt - s.value) < 1e-3){
+      s.value = tgt;
+      delete mutTargets[name];
+    } else {
+      s.value += (tgt - s.value) * alpha;
+    }
+    syncSlider(name);
+    applyParam(name);
+  });
+}
+
+const PRESETS = {
+  "Deep space": { pad:.8, choir:.22, sub:.62, texture:.4, bells:.45, density:.2, timbre:.25,
+                  decay:.85, reverb:.8, echo:.42, echoTime:.9, brightness:.4, width:.55,
+                  drift:.6, chordSecs:48, register:-5 },
+  "Glacier":    { pad:.65, choir:.15, sub:.35, texture:.6, bells:.6, density:.42, timbre:.75,
+                  decay:.7, reverb:.7, echo:.35, echoTime:.45, brightness:.72, width:.4,
+                  drift:.45, chordSecs:30, register:4 },
+  "Cathedral":  { pad:.6, choir:.72, sub:.4, texture:.14, bells:.3, density:.14, timbre:.2,
+                  decay:.9, reverb:.92, echo:.2, echoTime:1.2, brightness:.5, width:.3,
+                  drift:.3, chordSecs:40, register:-2 },
+  "Warm dusk":  { pad:.85, choir:.3, sub:.55, texture:.3, bells:.5, density:.5, timbre:.3,
+                  decay:.5, reverb:.5, echo:.5, echoTime:.6, brightness:.44, width:.6,
+                  drift:.55, chordSecs:22, register:0 },
+  "Signal":     { pad:.45, choir:.1, sub:.7, texture:.5, bells:.55, density:.7, timbre:.6,
+                  decay:.35, reverb:.45, echo:.6, echoTime:.35, brightness:.62, width:.45,
+                  drift:.7, chordSecs:16, register:0, pulseLevel:.5 },
+};
+
+function initPresets(){
+  const host = document.getElementById("presets");
+  Object.keys(PRESETS).forEach(name => {
+    const b = document.createElement("button");
+    b.textContent = name;
+    b.addEventListener("click", () => setParams(PRESETS[name]));
+    host.appendChild(b);
+  });
+}
+
+function initSelects(){
+  const rootSel = document.getElementById("root");
+  NOTE_NAMES.forEach((n, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = n;
+    if (i === rootPc) o.selected = true;
+    rootSel.appendChild(o);
+  });
+  rootSel.addEventListener("change", () => {
+    rootPc = parseInt(rootSel.value, 10);
+    if (ctx && currentChord) applyChord(nextChord(), 3.5);
+  });
+
+  const scaleSel = document.getElementById("scale");
+  Object.keys(SCALES).forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    if (n === scaleName) o.selected = true;
+    scaleSel.appendChild(o);
+  });
+  scaleSel.addEventListener("change", () => {
+    scaleName = scaleSel.value;
+    walkIndex = 0;
+    if (ctx && currentChord) applyChord(nextChord(), 3.5);
+  });
+}
+
+/* ---------- visualizer ---------- */
+
+let scopeRAF = null;
+function drawScope(){
+  const cv = document.getElementById("scope");
+  const g = cv.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+
+  function resize(){
+    const r = cv.getBoundingClientRect();
+    cv.width = Math.max(1, Math.floor(r.width * dpr));
+    cv.height = Math.max(1, Math.floor(r.height * dpr));
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  const bins = new Uint8Array(nodes.analyser.frequencyBinCount);
+
+  function frame(){
+    scopeRAF = requestAnimationFrame(frame);
+    nodes.analyser.getByteFrequencyData(bins);
+    const W = cv.width, H = cv.height;
+    g.clearRect(0, 0, W, H);
+
+    const N = 96;
+    const grad = g.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0,   "rgba(110,231,215,.95)");
+    grad.addColorStop(0.55,"rgba(139,140,240,.9)");
+    grad.addColorStop(1,   "rgba(240,163,200,.85)");
+    g.fillStyle = grad;
+
+    for (let i = 0; i < N; i++){
+      // log-ish frequency mapping so the bass isn't crammed into one bar
+      const lo = Math.floor(Math.pow(i / N, 2) * bins.length);
+      const hi = Math.max(lo + 1, Math.floor(Math.pow((i + 1) / N, 2) * bins.length));
+      let sum = 0;
+      for (let k = lo; k < hi; k++) sum += bins[k];
+      const v = (sum / (hi - lo)) / 255;
+      const bw = W / N;
+      const h = Math.max(1.5 * dpr, v * H * 0.94);
+      g.globalAlpha = 0.35 + v * 0.65;
+      g.fillRect(i * bw + bw * 0.22, H - h, bw * 0.56, h);
+    }
+    g.globalAlpha = 1;
+  }
+  if (!scopeRAF) frame();
+}
+
+/* ---------- boot ---------- */
+
+document.addEventListener("DOMContentLoaded", () => {
+  initSliders();
+  initPresets();
+  initSelects();
+
+  const btn = document.getElementById("playBtn");
+  btn.addEventListener("click", () => { running ? stop() : start(); });
+
+  document.getElementById("pulseOn").addEventListener("change", () => {
+    nextPulseTime = 0;
+  });
+
+  document.getElementById("randomBtn").addEventListener("click", randomizeAll);
+
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  registerServiceWorker();
+
+  // only mention installing when the browser actually supports it
+  if (IS_TOUCH && "serviceWorker" in navigator && location.protocol !== "file:"){
+    const h = document.getElementById("installHint");
+    if (h) h.hidden = false;
+  }
+
+  document.addEventListener("keydown", e => {
+    const typing = e.target.tagName === "SELECT" || e.target.type === "range";
+    if (e.code === "Space" && !typing){
+      e.preventDefault();
+      running ? stop() : start();
+    }
+    if ((e.key === "r" || e.key === "R") && !typing && !e.metaKey && !e.ctrlKey){
+      randomizeAll();
+    }
+  });
+
+  // exposed for debugging / offline capture
+  window.__endless = { start, stop, setParams, randomizeAll, PARAMS, nodes, RANDOM_BOUNDS,
+                       get ctx(){ return ctx; }, get running(){ return running; },
+                       get mutTargets(){ return mutTargets; },
+                       get harmony(){ return { rootPc, scaleName }; } };
+});
+</script>
+</body>
+</html>
