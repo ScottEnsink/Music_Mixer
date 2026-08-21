@@ -584,6 +584,11 @@ const NUM_PAD_VOICES = 4;
 const OSC_PER_VOICE  = 3;
 const NUM_CHOIR      = 2;
 
+/* Choir bus level. Kept as a constant because it is needed both when the graph
+   is built and in applyParam(), and the two silently drifting apart is exactly
+   how a slider ends up appearing to do nothing. */
+const CHOIR_GAIN = 0.42;
+
 // Vowel formant triples (Hz) — morphed between for slow movement.
 const VOWELS = [
   [ 730, 1090, 2440 ], // "ah"
@@ -859,7 +864,7 @@ function buildPad(){
 
 function buildChoir(){
   nodes.choirGain = ctx.createGain();
-  nodes.choirGain.gain.value = P("choir") * 0.16;
+  nodes.choirGain.gain.value = P("choir") * CHOIR_GAIN;
   nodes.choirGain.connect(nodes.bus);
   nodes.choirGain.connect(nodes.revSend);
 
@@ -875,14 +880,30 @@ function buildChoir(){
       const bp = ctx.createBiquadFilter();
       bp.type = "bandpass";
       bp.frequency.value = f;
-      bp.Q.value = 7 + fi * 2;
+      // Modest Q. Pinching these tighter sounds nasal and throws away so much
+      // energy that the whole layer disappears under the pad.
+      bp.Q.value = 4.5 + fi * 1.5;
       const g = ctx.createGain();
-      g.gain.value = [1, 0.55, 0.3][fi];
+      g.gain.value = [1, 0.6, 0.35][fi];
       src.connect(bp);
       bp.connect(g);
       g.connect(out);
       return bp;
     });
+
+    /* Body. The formant bank starts at 730 Hz but these voices sing at roughly
+       130-250 Hz, so the bank discards the fundamental completely — which left
+       the choir a thin, nasal whisper you couldn't pick out of the mix. A real
+       voice has weight under its formants; this is that weight. */
+    const body = ctx.createBiquadFilter();
+    body.type = "lowpass";
+    body.frequency.value = 520;
+    body.Q.value = 0.7;
+    const bodyG = ctx.createGain();
+    bodyG.gain.value = 0.55;
+    src.connect(body);
+    body.connect(bodyG);
+    bodyG.connect(out);
 
     out.connect(pan);
     pan.connect(nodes.choirGain);
@@ -1413,7 +1434,7 @@ function applyParam(name){
     case "echo":       smooth(nodes.dlySend.gain, v * 0.8, 0.25); break;
     case "echoTime":   smooth(nodes.delay.delayTime, v, 0.4); break;
     case "pad":        smooth(nodes.padGain.gain, v * 0.22, 0.2); break;
-    case "choir":      smooth(nodes.choirGain.gain, v * 0.16, 0.3); break;
+    case "choir":      smooth(nodes.choirGain.gain, v * CHOIR_GAIN, 0.3); break;
     case "sub":        smooth(nodes.subGain.gain, v * 0.30, 0.3); break;
     case "texture":    smooth(nodes.texGain.gain, v * 0.30, 0.3); break;
     case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
