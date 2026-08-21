@@ -1,0 +1,32 @@
+# Netlify configuration for Endless.
+#
+# There is no build step — the site is static files under public/ — so this file
+# exists mainly to point Netlify at the right directory and to get the caching
+# headers right for a PWA.
+
+[build]
+  publish = "public"
+
+# The service worker must never be served from cache. If a stale sw.js sticks
+# around, it keeps serving its own old cached copy of the app and deploys stop
+# reaching people until they clear site data. Same reasoning for the entry HTML.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Icons are content-stable, so let them cache hard.
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
