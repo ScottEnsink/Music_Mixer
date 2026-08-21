@@ -76,6 +76,12 @@
     flex:1 1 300px;height:58px;min-width:220px;display:block;
     border-radius:10px;background:rgba(0,0,0,.25);border:1px solid var(--line);
   }
+  /* master volume lives in the transport, always last, always full width —
+     it stays inside the sticky header on a phone */
+  .volrow{flex:1 1 100%;order:4;padding-top:2px}
+  .volrow .row{margin-bottom:0}
+  .volrow .lab b{font-size:12px;color:var(--ink-dim);font-weight:400;
+                 letter-spacing:.06em;text-transform:uppercase}
 
   /* ---- presets ---- */
   .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
@@ -208,6 +214,12 @@
       <div class="sub" id="timeLabel">press play to begin</div>
     </div>
     <canvas id="scope" width="600" height="58"></canvas>
+    <div class="volrow">
+      <div class="row" data-param="volume">
+        <div class="lab"><b>Master volume</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+      </div>
+    </div>
   </div>
 
   <div class="presets" id="presets">
@@ -312,14 +324,11 @@
         <div class="lab"><b>Echo time</b><i></i></div>
         <input type="range" min="0.15" max="1.6" step="0.005">
       </div>
-      <div class="row" data-param="volume">
-        <div class="lab"><b>Master volume</b><i></i></div><input type="range" min="0" max="1" step="0.001">
-      </div>
     </section>
 
     <section class="panel">
-      <h2>Pulse</h2>
-      <label class="toggle"><input type="checkbox" id="pulseOn"><b>Enable pulse</b></label>
+      <h2>Pulse &amp; Bass</h2>
+      <label class="toggle"><input type="checkbox" id="pulseOn"><b>Enable pulse &amp; bass</b></label>
       <div class="row" data-param="bpm">
         <div class="lab"><b>Tempo</b><i></i></div>
         <input type="range" min="40" max="150" step="1">
@@ -332,6 +341,19 @@
         <div class="lab"><b>Pulse tone</b><i></i></div>
         <input type="range" min="0" max="1" step="0.001">
         <div class="hint">Round sub-thump through to a clicky, present kick.</div>
+      </div>
+      <div class="row" data-param="bass">
+        <div class="lab"><b>Bass</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Follows the chord root, locked to the tempo above.</div>
+      </div>
+      <div class="row" data-param="bassTone">
+        <div class="lab"><b>Bass tone</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Filter envelope depth &mdash; dark and round through to a bright pluck.</div>
+      </div>
+      <div class="selects" style="margin-bottom:16px">
+        <label><span>Bass pattern</span><select id="bassPattern"></select></label>
       </div>
     </section>
 
@@ -400,6 +422,8 @@ const PARAMS = {
   bpm:        { value: 68,   fmt: v => v.toFixed(0) + " bpm" },
   pulseLevel: { value: 0.45, fmt: pct },
   pulseTone:  { value: 0.35, fmt: pct },
+  bass:       { value: 0.55, fmt: pct },
+  bassTone:   { value: 0.45, fmt: pct },
   // evolution
   randomness: { value: 0,    fmt: v => v <= 0.005 ? "locked" : "every ~" + Math.round(mutInterval(v)) + " s" },
 };
@@ -444,6 +468,8 @@ const RANDOM_BOUNDS = {
   bpm:        [52, 136],
   pulseLevel: [0.20, 0.70],
   pulseTone:  [0.10, 0.85],
+  bass:       [0.25, 0.80],
+  bassTone:   [0.15, 0.85],
 };
 
 const INTEGER_PARAMS = { chordSecs: 1, register: 1, bpm: 1 };
@@ -451,7 +477,7 @@ const INTEGER_PARAMS = { chordSecs: 1, register: 1, bpm: 1 };
 // Eased continuously by the Randomness slider.
 const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
                         "bells","density","timbre","decay","reverb","echo","echoTime",
-                        "chordSecs","pulseLevel","pulseTone"];
+                        "chordSecs","pulseLevel","pulseTone","bass","bassTone"];
 
 function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
 
@@ -484,11 +510,45 @@ let rootPc = 9;                              // A
 let scaleName = "Aeolian (natural minor)";
 const scaleSteps = () => SCALES[scaleName];
 
-// Walk the scale in a slow, mostly-stepwise way so successive chords share tones.
-const DEGREE_WALK = [0, 5, 3, 4, 1, 5, 2, 4, 0, 3];
+/* Harmony moves by one or two scale steps at a time and no more, so successive
+   chords always share most of their tones and the movement reads as a drift
+   rather than a jump. (This replaces a fixed 10-entry progression, which both
+   leapt around and repeated a pattern you could eventually hear.)
+
+   `walkIndex` is kept only as a seed offset so Randomize can shuffle the
+   starting point; the walk itself is stateful in `currentDegree`. */
+const STEP_CHOICES = [1, 1, 1, -1, -1, -1, 2, -2];   // ±1 three times as likely as ±2
+const DEGREE_TETHER = 5;                             // soft bound on how far it strays
+
+let currentDegree = 0;
 let walkIndex = 0;
 
+function stepDegree(){
+  let step = choice(STEP_CHOICES);
+  // If we've drifted far from home, force the next step back toward it. Without
+  // this the walk slowly ratchets away and the whole piece climbs or sinks.
+  if (Math.abs(currentDegree) > DEGREE_TETHER){
+    step = Math.sign(-currentDegree) * Math.abs(step);
+  }
+  currentDegree += step;
+  return currentDegree;
+}
+
 function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+/* ---------- bass patterns ----------
+   One bar of 4 beats = 8 eighth-note steps. 0 = rest, 1 = play the root,
+   2 = play a chord tone above it (adds movement without leaving the harmony).
+   The kick lands on the even steps, so odd steps are the off-beats.          */
+const BASS_PATTERNS = {
+  "Held (one per bar)": [1,0,0,0,0,0,0,0],
+  "On the beat":        [1,0,1,0,1,0,1,0],
+  "Off-beat (trance)":  [0,1,0,1,0,1,0,1],
+  "Rolling eighths":    [1,1,1,1,2,1,1,1],
+  "Syncopated":         [1,0,0,1,0,1,0,2],
+  "Sparse":             [1,0,0,0,1,0,0,2],
+};
+let bassPatternName = "On the beat";
 
 // Scale degree -> MIDI note, wrapping into octaves.
 function degreeToMidi(degree, baseOctaveMidi){
@@ -501,7 +561,7 @@ function degreeToMidi(degree, baseOctaveMidi){
 
 /* Build the next chord: four stacked scale tones spread across two octaves. */
 function nextChord(){
-  const degree = DEGREE_WALK[walkIndex % DEGREE_WALK.length];
+  const degree = stepDegree();
   walkIndex++;
   const base = 36 + Math.round(P("register"));      // C2-ish + transpose
   const voicing = [0, 2, 4, 6];                     // 7th-chord shape in scale steps
@@ -545,6 +605,7 @@ let currentChord = null;
 let nextChordTime = 0;
 let nextBellTime = 0;
 let nextPulseTime = 0;
+let pulseStep = 0;          // position on the shared eighth-note grid
 let schedulerTimer = null;
 let lastTick = 0;
 
@@ -568,6 +629,17 @@ const REVERB_SECONDS = LOW_POWER ? 3.6 : 7.5;
 
 let wakeLock = null;        // Screen Wake Lock sentinel, while playing
 let keepAlive = null;       // silent <audio> element that holds the media session
+
+/* Opt-in event trace. Off by default and free when off — set
+   window.__ENDLESS_TRACE = true to record exactly what got scheduled and when,
+   which is the only reliable way to verify rhythm (measuring it back off the
+   audio is at the mercy of your envelope-follower settings). */
+const TRACE = [];
+function trace(kind, time, extra){
+  if (!window.__ENDLESS_TRACE) return;
+  if (TRACE.length > 5000) TRACE.shift();
+  TRACE.push(Object.assign({ kind, t: +time.toFixed(4) }, extra));
+}
 
 /* ---------- helpers ---------- */
 
@@ -900,6 +972,22 @@ function buildPulseChain(){
   send.gain.value = 0.25;
   nodes.pulseGain.connect(send);
   send.connect(nodes.revSend);
+
+  /* Bass gets its own bus, and deliberately almost no reverb — bass in a long
+     reverb is the fastest way to turn a mix to mud. A high-pass on the send
+     lets a little of the upper harmonics into the space without the fundamental. */
+  nodes.bassGain = ctx.createGain();
+  nodes.bassGain.gain.value = P("bass") * 0.30;
+  nodes.bassGain.connect(nodes.bus);
+
+  const bassSendHP = ctx.createBiquadFilter();
+  bassSendHP.type = "highpass";
+  bassSendHP.frequency.value = 400;
+  const bassSend = ctx.createGain();
+  bassSend.gain.value = 0.10;
+  nodes.bassGain.connect(bassSendHP);
+  bassSendHP.connect(bassSend);
+  bassSend.connect(nodes.revSend);
 }
 
 /* ---------- one-shot voices ---------- */
@@ -960,8 +1048,58 @@ function playBell(time, midi){
   };
 }
 
+/* Sawtooth + sub sine through a filter envelope — the classic subtractive bass.
+   The filter sweep is what makes it read as "plucked" rather than as an organ. */
+function playBass(time, midi, dur){
+  const level = P("bass");
+  if (level <= 0.001) return;
+
+  const freq = midiToHz(midi);
+  const tone = P("bassTone");
+  trace("bass", time, { midi, dur: +dur.toFixed(3), hz: +freq.toFixed(2) });
+
+  const saw = ctx.createOscillator();
+  saw.type = "sawtooth";
+  saw.frequency.value = freq;
+
+  const sub = ctx.createOscillator();
+  sub.type = "sine";
+  sub.frequency.value = freq;                 // same pitch, adds weight not octave
+
+  const sawG = ctx.createGain(); sawG.gain.value = 0.42;
+  const subG = ctx.createGain(); subG.gain.value = 0.75;
+
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.Q.value = 4 + tone * 6;
+  const peak = Math.min(7000, freq * (4 + tone * 26));
+  const floor = Math.max(90, freq * 1.4);
+  lp.frequency.setValueAtTime(peak, time);
+  lp.frequency.exponentialRampToValueAtTime(floor, time + Math.min(dur, 0.16 + tone * 0.3));
+
+  const vca = ctx.createGain();
+  const rel = Math.max(0.06, dur * 0.9);
+  vca.gain.setValueAtTime(0.0001, time);
+  vca.gain.exponentialRampToValueAtTime(level * 0.5, time + 0.008);
+  vca.gain.exponentialRampToValueAtTime(level * 0.28, time + Math.min(rel * 0.5, 0.12));
+  vca.gain.exponentialRampToValueAtTime(0.0001, time + rel);
+
+  saw.connect(sawG); sawG.connect(lp);
+  sub.connect(subG); subG.connect(lp);
+  lp.connect(vca);
+  vca.connect(nodes.bassGain);
+
+  saw.start(time); sub.start(time);
+  const stop = time + rel + 0.05;
+  saw.stop(stop); sub.stop(stop);
+  saw.onended = () => {
+    [saw, sub, sawG, subG, lp, vca].forEach(n => { try { n.disconnect(); } catch(e){} });
+  };
+}
+
 function playPulse(time){
   const lvl = P("pulseLevel");
+  trace("kick", time, {});
   if (lvl <= 0.001) return;
   const tone = P("pulseTone");
 
@@ -1061,16 +1199,39 @@ function scheduleAhead(){
     nextBellTime += mean * rand(0.45, 1.75);       // humanised, never metronomic
   }
 
-  // pulse
+  /* Pulse + bass share one eighth-note grid so they can never drift apart.
+     The kick lands on even steps (the quarter notes); the bass follows the
+     selected pattern and takes its pitch from whatever chord is current. */
   if (document.getElementById("pulseOn").checked){
-    const spb = 60 / P("bpm");
-    if (nextPulseTime < ctx.currentTime) nextPulseTime = ctx.currentTime + 0.05;
+    const stepDur = 60 / P("bpm") / 2;                  // one eighth note
+    if (nextPulseTime < ctx.currentTime){
+      nextPulseTime = ctx.currentTime + 0.05;
+      pulseStep = 0;
+    }
+    const pattern = BASS_PATTERNS[bassPatternName] || BASS_PATTERNS["On the beat"];
+
     while (nextPulseTime < horizon){
-      playPulse(nextPulseTime);
-      nextPulseTime += spb;
+      const step = pulseStep % pattern.length;
+
+      if (step % 2 === 0) playPulse(nextPulseTime);
+
+      const hit = pattern[step];
+      if (hit && currentChord){
+        const notes = currentChord.notes;
+        // 1 = root; 2 = a chord tone above, for movement inside the harmony
+        const midi = hit === 2 ? notes[1] : notes[0];
+        // hold through following rests, so "Held" sustains and "Rolling" stays tight
+        let hold = 1;
+        while (hold < pattern.length && !pattern[(step + hold) % pattern.length]) hold++;
+        playBass(nextPulseTime, midi, stepDur * hold * 0.92);
+      }
+
+      nextPulseTime += stepDur;
+      pulseStep++;
     }
   } else {
     nextPulseTime = 0;
+    pulseStep = 0;
   }
 
   // autonomous drift driven by the Randomness slider
@@ -1195,6 +1356,8 @@ async function start(){
   nextBellTime = ctx.currentTime + 2.5;
   nextPulseTime = 0;
   walkIndex = 0;
+  currentDegree = 0;
+  pulseStep = 0;
   lastTick = 0;
   nextMutTime = 0;
   mutTargets = {};
@@ -1254,6 +1417,7 @@ function applyParam(name){
     case "sub":        smooth(nodes.subGain.gain, v * 0.30, 0.3); break;
     case "texture":    smooth(nodes.texGain.gain, v * 0.30, 0.3); break;
     case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
+    case "bass":       smooth(nodes.bassGain.gain, v * 0.30, 0.15); break;
     case "drift":
       driftLFOs.forEach(l => smooth(l.gain.gain, l.depth * v, 0.4));
       break;
@@ -1330,8 +1494,10 @@ function syncSlider(name){
 function setSelects(){
   const r = document.getElementById("root");
   const sc = document.getElementById("scale");
+  const bp = document.getElementById("bassPattern");
   if (r) r.value = String(rootPc);
   if (sc) sc.value = scaleName;
+  if (bp) bp.value = bassPatternName;
 }
 
 /* ---------- Randomize: one roll of everything ---------- */
@@ -1347,6 +1513,12 @@ function randomizeAll(){
   const scaleKeys = Object.keys(SCALES);
   scaleName = scaleKeys[(Math.random() * scaleKeys.length) | 0];
   walkIndex = (Math.random() * 10) | 0;
+  currentDegree = choice([-2, -1, 0, 0, 1, 2]);
+  const bp = document.getElementById("bassPattern");
+  if (bp){
+    bassPatternName = choice(Object.keys(BASS_PATTERNS));
+    bp.value = bassPatternName;
+  }
   setSelects();
 
   const pulse = document.getElementById("pulseOn");
@@ -1458,7 +1630,8 @@ const PRESETS = {
                   drift:.55, chordSecs:22, register:0 },
   "Signal":     { pad:.45, choir:.1, sub:.7, texture:.5, bells:.55, density:.7, timbre:.6,
                   decay:.35, reverb:.45, echo:.6, echoTime:.35, brightness:.62, width:.45,
-                  drift:.7, chordSecs:16, register:0, pulseLevel:.5 },
+                  drift:.7, chordSecs:16, register:0, pulseLevel:.5,
+                  bass:.62, bassTone:.6 },
 };
 
 function initPresets(){
@@ -1484,6 +1657,15 @@ function initSelects(){
     if (ctx && currentChord) applyChord(nextChord(), 3.5);
   });
 
+  const bassSel = document.getElementById("bassPattern");
+  Object.keys(BASS_PATTERNS).forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    if (n === bassPatternName) o.selected = true;
+    bassSel.appendChild(o);
+  });
+  bassSel.addEventListener("change", () => { bassPatternName = bassSel.value; });
+
   const scaleSel = document.getElementById("scale");
   Object.keys(SCALES).forEach(n => {
     const o = document.createElement("option");
@@ -1494,6 +1676,7 @@ function initSelects(){
   scaleSel.addEventListener("change", () => {
     scaleName = scaleSel.value;
     walkIndex = 0;
+    currentDegree = 0;
     if (ctx && currentChord) applyChord(nextChord(), 3.5);
   });
 }
@@ -1586,7 +1769,9 @@ document.addEventListener("DOMContentLoaded", () => {
   window.__endless = { start, stop, setParams, randomizeAll, PARAMS, nodes, RANDOM_BOUNDS,
                        get ctx(){ return ctx; }, get running(){ return running; },
                        get mutTargets(){ return mutTargets; },
-                       get harmony(){ return { rootPc, scaleName }; } };
+                       get harmony(){ return { rootPc, scaleName, currentDegree, bassPatternName }; },
+                       get chord(){ return currentChord; },
+                       nextChordPreview: nextChord, TRACE };
 });
 </script>
 </body>

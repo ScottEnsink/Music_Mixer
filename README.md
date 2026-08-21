@@ -18,11 +18,22 @@ dependencies. Open it directly in a browser and it works.
 | Bells | FM one-shots (carrier + one detuned partial) on a deliberately uneven scheduler, fed hard into reverb and delay. |
 | Space | Convolution reverb using an impulse response generated in JS at load time, plus a damped feedback delay that also feeds the reverb. |
 | Pulse | Optional pitch-dropping sine kick with a noise transient. Off by default. |
+| Bass | Sawtooth + sub sine through a filter envelope, sequenced on an eighth-note grid shared with the kick so they can't drift apart. Takes its pitch from the current chord root. Almost no reverb send — bass in a long reverb is the fastest route to mud. |
 
 Master chain: `bus → tone filter → volume → limiter → soft-clip → fade → analyser → out`.
 
 > The volume/makeup gain **must** stay before the limiter. An earlier version had
 > it after, which clipped at +1.5 dBFS with all layers maxed.
+
+## Harmony
+
+Chords move by **one or two scale steps at a time and no more** — 1 to 4 semitones of
+root motion, weighted toward the smaller intervals. Successive chords therefore share
+most of their tones, and the pad *glides* between them rather than retriggering, so
+changes read as drift rather than as edits.
+
+A soft tether (`DEGREE_TETHER`) pulls the walk back when it strays more than 5 degrees
+from home; without it the walk slowly ratchets and the whole piece climbs or sinks.
 
 ## Controls
 
@@ -70,12 +81,16 @@ registration rather than throwing.
 - Lo-fi mode: swung dusty drums, jazz voicings, tape wobble, vinyl noise. The one
   place a few CC0 samples would genuinely earn their keep.
 - Preset save/load and URL-shareable state.
+- A weighted/Markov walk for bell note choice (the chord walk is already stepwise).
 - Audio export.
 
-### Known weakness
+### Verifying rhythm
 
-Bells draw from a fixed 10-step chord walk (`DEGREE_WALK`), so over a long listen a
-pattern becomes perceptible. Wants a weighted or Markov walk.
+Do not measure rhythm off the rendered audio — an envelope follower with the wrong
+smoothing window will happily report double tempo (5 ms smoothing on a 124 Hz bass
+ripples straight through the threshold). Set `window.__ENDLESS_TRACE = true` and read
+`__endless.TRACE` instead; it records the exact scheduled time, MIDI note and duration
+of every kick and bass event.
 
 ## A licensing note, if samples ever get added
 
