@@ -8,4 +8,5 @@ DONE 1- move the Evolution control to the top
 6- add in spoken words from random literature
 7- add piano chords
 8- add wind chimes
+9- add a Hold option for each slider
 

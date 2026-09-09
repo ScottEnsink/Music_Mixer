@@ -208,7 +208,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
-    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T15:25:00-04:00">Sep 9, 2026, 3:25 PM</time></div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T15:31:00-04:00">Sep 9, 2026, 3:31 PM</time></div>
   </header>
 
   <div class="transport">
@@ -620,8 +620,7 @@ function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 /* ---------- bass patterns ----------
    One bar of 4 beats = 8 eighth-note steps. 0 = rest, 1 = play the root,
-   2 = play a chord tone above it (adds movement without leaving the harmony).
-   The kick lands on the even steps, so odd steps are the off-beats.          */
+   2 = play a chord tone above it (adds movement without leaving the harmony). */
 const BASS_PATTERNS = {
   "Held (one per bar)": [1,0,0,0,0,0,0,0],
   "On the beat":        [1,0,1,0,1,0,1,0],
@@ -629,6 +628,18 @@ const BASS_PATTERNS = {
   "Rolling eighths":    [1,1,1,1,2,1,1,1],
   "Syncopated":         [1,0,0,1,0,1,0,2],
   "Sparse":             [1,0,0,0,1,0,0,2],
+};
+/* Kick pattern paired 1:1 with the bass pattern, so switching patterns changes
+   the whole groove, not just which pitch the bass plays. Previously the kick
+   always landed on every even step no matter which bass pattern was picked,
+   which is why the patterns barely sounded different. */
+const KICK_PATTERNS = {
+  "Held (one per bar)": [1,0,0,0,0,0,0,0],
+  "On the beat":        [1,0,1,0,1,0,1,0],
+  "Off-beat (trance)":  [0,1,0,1,0,1,0,1],
+  "Rolling eighths":    [1,1,1,1,1,1,1,1],
+  "Syncopated":         [1,0,0,1,0,1,0,1],
+  "Sparse":             [1,0,0,0,1,0,0,0],
 };
 let bassPatternName = "On the beat";
 
@@ -1538,8 +1549,8 @@ function scheduleAhead(){
   }
 
   /* Pulse + bass share one eighth-note grid so they can never drift apart.
-     The kick lands on even steps (the quarter notes); the bass follows the
-     selected pattern and takes its pitch from whatever chord is current.
+     Both the kick and the bass follow the selected pattern, so switching
+     patterns changes the whole groove, not just the bass note underneath it.
      No on/off switch — the level sliders themselves gate playback. */
   if (P("pulseLevel") > 0.001 || P("bass") > 0.001){
     const stepDur = 60 / P("bpm") / 2;                  // one eighth note
@@ -1548,11 +1559,12 @@ function scheduleAhead(){
       pulseStep = 0;
     }
     const pattern = BASS_PATTERNS[bassPatternName] || BASS_PATTERNS["On the beat"];
+    const kickPattern = KICK_PATTERNS[bassPatternName] || KICK_PATTERNS["On the beat"];
 
     while (nextPulseTime < horizon){
       const step = pulseStep % pattern.length;
 
-      if (step % 2 === 0) playPulse(nextPulseTime);
+      if (kickPattern[step % kickPattern.length]) playPulse(nextPulseTime);
 
       const hit = pattern[step];
       if (hit && currentChord){

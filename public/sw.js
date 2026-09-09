@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v23";  // v23: wider note-change steps, new Harmony note (choir), shift level floor 5% + stabilized
+const CACHE_VERSION = "endless-v24";  // v24: kick now follows the Bass pattern selection too, not just a fixed beat
 
 const PRECACHE = [
   "./",
