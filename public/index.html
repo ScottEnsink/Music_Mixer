@@ -76,10 +76,10 @@
     flex:1 1 300px;height:58px;min-width:220px;display:block;
     border-radius:10px;background:rgba(0,0,0,.25);border:1px solid var(--line);
   }
-  /* master volume lives in the transport, always last, always full width —
-     it stays inside the sticky header on a phone */
-  .volrow{flex:1 1 100%;order:4;padding-top:2px}
-  .volrow .row{margin-bottom:0}
+  /* master volume + tempo live in the transport, always last, always full width —
+     they stay inside the sticky header on a phone */
+  .volrow{flex:1 1 100%;order:4;padding-top:2px;display:flex;gap:18px;flex-wrap:wrap}
+  .volrow .row{margin-bottom:0;flex:1 1 220px}
   .volrow .lab b{font-size:12px;color:var(--ink-dim);font-weight:400;
                  letter-spacing:.06em;text-transform:uppercase}
 
@@ -219,6 +219,10 @@
         <div class="lab"><b>Master volume</b><i></i></div>
         <input type="range" min="0" max="1" step="0.001">
       </div>
+      <div class="row" data-param="bpm">
+        <div class="lab"><b>Tempo</b><i></i></div>
+        <input type="range" min="20" max="150" step="1">
+      </div>
     </div>
   </div>
 
@@ -242,10 +246,10 @@
         <label><span>Root</span><select id="root"></select></label>
         <label><span>Scale</span><select id="scale"></select></label>
       </div>
-      <div class="row" data-param="chordSecs">
-        <div class="lab"><b>Chord change</b><i></i></div>
+      <div class="row" data-param="chordRootSecs">
+        <div class="lab"><b>Chord root change</b><i></i></div>
         <input type="range" min="6" max="90" step="1">
-        <div class="hint">How long each harmony is held before it drifts to the next.</div>
+        <div class="hint">How often the loop's root shifts to a new key center. Chords themselves loop in sync with the tempo.</div>
       </div>
       <div class="row" data-param="register">
         <div class="lab"><b>Register</b><i></i></div>
@@ -329,11 +333,6 @@
     <section class="panel">
       <h2>Pulse &amp; Bass</h2>
       <label class="toggle"><input type="checkbox" id="pulseOn"><b>Enable pulse &amp; bass</b></label>
-      <div class="row" data-param="bpm">
-        <div class="lab"><b>Tempo</b><i></i></div>
-        <input type="range" min="40" max="150" step="1">
-        <div class="hint">A soft heartbeat under the drone. This is the hook the EDM/trance modes will hang off later.</div>
-      </div>
       <div class="row" data-param="pulseLevel">
         <div class="lab"><b>Pulse level</b><i></i></div><input type="range" min="0" max="1" step="0.001">
       </div>
@@ -345,7 +344,7 @@
       <div class="row" data-param="bass">
         <div class="lab"><b>Bass</b><i></i></div>
         <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Follows the chord root, locked to the tempo above.</div>
+        <div class="hint">Follows the chord root, locked to the tempo control up top.</div>
       </div>
       <div class="row" data-param="bassTone">
         <div class="lab"><b>Bass tone</b><i></i></div>
@@ -397,7 +396,7 @@
 
 const PARAMS = {
   // harmony
-  chordSecs:  { value: 26,   fmt: v => v.toFixed(0) + " s" },
+  chordRootSecs: { value: 26, fmt: v => v.toFixed(0) + " s" },
   register:   { value: 0,    fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
   // tone
   brightness: { value: 0.52, fmt: v => hzLabel(brightnessHz(v)) },
@@ -449,7 +448,7 @@ function mutInterval(v){ return 130 * Math.pow(0.062, v); }
    ============================================================ */
 
 const RANDOM_BOUNDS = {
-  chordSecs:  [10, 70],
+  chordRootSecs: [10, 70],
   register:   [-8, 8],
   brightness: [0.28, 0.86],
   width:      [0.15, 0.90],
@@ -472,12 +471,12 @@ const RANDOM_BOUNDS = {
   bassTone:   [0.15, 0.85],
 };
 
-const INTEGER_PARAMS = { chordSecs: 1, register: 1, bpm: 1 };
+const INTEGER_PARAMS = { chordRootSecs: 1, register: 1, bpm: 1 };
 
 // Eased continuously by the Randomness slider.
 const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
                         "bells","density","timbre","decay","reverb","echo","echoTime",
-                        "chordSecs","pulseLevel","pulseTone","bass","bassTone"];
+                        "chordRootSecs","pulseLevel","pulseTone","bass","bassTone"];
 
 function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
 
@@ -510,28 +509,41 @@ let rootPc = 9;                              // A
 let scaleName = "Aeolian (natural minor)";
 const scaleSteps = () => SCALES[scaleName];
 
-/* Harmony moves by one or two scale steps at a time and no more, so successive
-   chords always share most of their tones and the movement reads as a drift
-   rather than a jump. (This replaces a fixed 10-entry progression, which both
-   leapt around and repeated a pattern you could eventually hear.)
-
-   `walkIndex` is kept only as a seed offset so Randomize can shuffle the
-   starting point; the walk itself is stateful in `currentDegree`. */
+/* Harmony is a short looping chord progression (2-7 chords) rather than a
+   fixed 10-entry list — each chord is one or two scale steps from the last,
+   so the loop always reads as a drift rather than a series of jumps. The
+   whole loop periodically transposes to a new root (`rootDegree`, driven by
+   the Chord root change slider), which is how the key keeps moving without
+   the loop shape itself ever needing to change. */
 const STEP_CHOICES = [1, 1, 1, -1, -1, -1, 2, -2];   // ±1 three times as likely as ±2
 const DEGREE_TETHER = 5;                             // soft bound on how far it strays
 
-let currentDegree = 0;
-let walkIndex = 0;
+let rootDegree = 0;         // current key-center offset, shifted by "Chord root change"
+let chordLoop = [0];        // relative degree offsets making up the current loop
+let loopIndex = 0;          // position within chordLoop
 
-function stepDegree(){
+// A random 2-7 chord loop, each step one or two scale degrees from the last.
+function generateChordLoop(){
+  const len = 2 + ((Math.random() * 6) | 0);
+  const degrees = [0];
+  let d = 0;
+  for (let i = 1; i < len; i++){
+    let step = choice(STEP_CHOICES);
+    if (Math.abs(d) > DEGREE_TETHER) step = Math.sign(-d) * Math.abs(step);
+    d += step;
+    degrees.push(d);
+  }
+  return degrees;
+}
+
+function shiftChordRoot(){
   let step = choice(STEP_CHOICES);
   // If we've drifted far from home, force the next step back toward it. Without
   // this the walk slowly ratchets away and the whole piece climbs or sinks.
-  if (Math.abs(currentDegree) > DEGREE_TETHER){
-    step = Math.sign(-currentDegree) * Math.abs(step);
+  if (Math.abs(rootDegree) > DEGREE_TETHER){
+    step = Math.sign(-rootDegree) * Math.abs(step);
   }
-  currentDegree += step;
-  return currentDegree;
+  rootDegree += step;
 }
 
 function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
@@ -561,8 +573,8 @@ function degreeToMidi(degree, baseOctaveMidi){
 
 /* Build the next chord: four stacked scale tones spread across two octaves. */
 function nextChord(){
-  const degree = stepDegree();
-  walkIndex++;
+  const degree = rootDegree + chordLoop[loopIndex % chordLoop.length];
+  loopIndex++;
   const base = 36 + Math.round(P("register"));      // C2-ish + transpose
   const voicing = [0, 2, 4, 6];                     // 7th-chord shape in scale steps
   const notes = voicing.map((v, i) => degreeToMidi(degree + v, base + (i >= 2 ? 12 : 0)));
@@ -608,6 +620,7 @@ const driftLFOs = [];   // { gain, depth } — depth scaled by the Drift slider
 
 let currentChord = null;
 let nextChordTime = 0;
+let nextRootShiftTime = 0;
 let nextBellTime = 0;
 let nextPulseTime = 0;
 let pulseStep = 0;          // position on the shared eighth-note grid
@@ -1194,11 +1207,17 @@ function scheduleAhead(){
   if (!running) return;
   const horizon = ctx.currentTime + lookahead();
 
-  // harmony
+  // harmony: the loop advances one chord per bar, so it's always locked to the tempo
   if (ctx.currentTime >= nextChordTime){
-    const secs = P("chordSecs");
-    applyChord(nextChord(), Math.min(secs * 0.5, 9));
-    nextChordTime = ctx.currentTime + secs;
+    const barSecs = 60 / P("bpm") * 4;
+    applyChord(nextChord(), Math.min(barSecs * 0.5, 3));
+    nextChordTime = ctx.currentTime + barSecs;
+  }
+
+  // chord root: periodically transposes the whole loop to a new key center
+  if (ctx.currentTime >= nextRootShiftTime){
+    shiftChordRoot();
+    nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
   }
 
   // bells
@@ -1376,15 +1395,17 @@ async function start(){
   nextChordTime = 0;
   nextBellTime = ctx.currentTime + 2.5;
   nextPulseTime = 0;
-  walkIndex = 0;
-  currentDegree = 0;
+  chordLoop = generateChordLoop();
+  loopIndex = 0;
+  rootDegree = 0;
   pulseStep = 0;
   lastTick = 0;
   nextMutTime = 0;
   mutTargets = {};
 
   applyChord(nextChord(), 0.05);
-  nextChordTime = ctx.currentTime + P("chordSecs");
+  nextChordTime = ctx.currentTime + 60 / P("bpm") * 4;
+  nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
 
   smooth(nodes.vol.gain, masterTarget(), 0.2);
   smooth(nodes.master.gain, 1, 1.6);
@@ -1457,7 +1478,7 @@ function applyParam(name){
         if (nextMutTime === 0 || nextMutTime - t > iv) nextMutTime = t + iv * rand(0.25, 0.8);
       }
       break;
-    // chordSecs, density, timbre, decay, bells, bpm, pulseTone are read at schedule time
+    // chordRootSecs, density, timbre, decay, bells, bpm, pulseTone are read at schedule time
   }
 }
 
@@ -1533,8 +1554,9 @@ function randomizeAll(){
   rootPc = (Math.random() * 12) | 0;
   const scaleKeys = Object.keys(SCALES);
   scaleName = scaleKeys[(Math.random() * scaleKeys.length) | 0];
-  walkIndex = (Math.random() * 10) | 0;
-  currentDegree = choice([-2, -1, 0, 0, 1, 2]);
+  chordLoop = generateChordLoop();
+  loopIndex = 0;
+  rootDegree = choice([-2, -1, 0, 0, 1, 2]);
   const bp = document.getElementById("bassPattern");
   if (bp){
     bassPatternName = choice(Object.keys(BASS_PATTERNS));
@@ -1552,7 +1574,10 @@ function randomizeAll(){
   if (ctx && currentChord) applyChord(nextChord(), 2.5);
 
   mutTargets = {};                                // abandon any in-flight drift
-  if (ctx) nextMutTime = ctx.currentTime + mutInterval(P("randomness"));
+  if (ctx){
+    nextMutTime = ctx.currentTime + mutInterval(P("randomness"));
+    nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
+  }
 
   const b = document.getElementById("randomBtn");
   if (b){ b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin"); }
@@ -1639,19 +1664,19 @@ function mutateTick(dt){
 const PRESETS = {
   "Deep space": { pad:.8, choir:.22, sub:.62, texture:.4, bells:.45, density:.2, timbre:.25,
                   decay:.85, reverb:.8, echo:.42, echoTime:.9, brightness:.4, width:.55,
-                  drift:.6, chordSecs:48, register:-5 },
+                  drift:.6, chordRootSecs:48, register:-5 },
   "Glacier":    { pad:.65, choir:.15, sub:.35, texture:.6, bells:.6, density:.42, timbre:.75,
                   decay:.7, reverb:.7, echo:.35, echoTime:.45, brightness:.72, width:.4,
-                  drift:.45, chordSecs:30, register:4 },
+                  drift:.45, chordRootSecs:30, register:4 },
   "Cathedral":  { pad:.6, choir:.72, sub:.4, texture:.14, bells:.3, density:.14, timbre:.2,
                   decay:.9, reverb:.92, echo:.2, echoTime:1.2, brightness:.5, width:.3,
-                  drift:.3, chordSecs:40, register:-2 },
+                  drift:.3, chordRootSecs:40, register:-2 },
   "Warm dusk":  { pad:.85, choir:.3, sub:.55, texture:.3, bells:.5, density:.5, timbre:.3,
                   decay:.5, reverb:.5, echo:.5, echoTime:.6, brightness:.44, width:.6,
-                  drift:.55, chordSecs:22, register:0 },
+                  drift:.55, chordRootSecs:22, register:0 },
   "Signal":     { pad:.45, choir:.1, sub:.7, texture:.5, bells:.55, density:.7, timbre:.6,
                   decay:.35, reverb:.45, echo:.6, echoTime:.35, brightness:.62, width:.45,
-                  drift:.7, chordSecs:16, register:0, pulseLevel:.5,
+                  drift:.7, chordRootSecs:16, register:0, pulseLevel:.5,
                   bass:.62, bassTone:.6 },
 };
 
@@ -1696,8 +1721,9 @@ function initSelects(){
   });
   scaleSel.addEventListener("change", () => {
     scaleName = scaleSel.value;
-    walkIndex = 0;
-    currentDegree = 0;
+    chordLoop = generateChordLoop();
+    loopIndex = 0;
+    rootDegree = 0;
     if (ctx && currentChord) applyChord(nextChord(), 3.5);
   });
 }
@@ -1790,7 +1816,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.__endless = { start, stop, setParams, randomizeAll, PARAMS, nodes, RANDOM_BOUNDS,
                        get ctx(){ return ctx; }, get running(){ return running; },
                        get mutTargets(){ return mutTargets; },
-                       get harmony(){ return { rootPc, scaleName, currentDegree, bassPatternName }; },
+                       get harmony(){ return { rootPc, scaleName, rootDegree, chordLoop, bassPatternName }; },
                        get chord(){ return currentChord; },
                        nextChordPreview: nextChord, TRACE };
 });
