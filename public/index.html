@@ -49,6 +49,7 @@
   h1{margin:0;font-size:22px;font-weight:600;letter-spacing:.02em}
   h1 span{color:var(--accent)}
   .tag{font-size:12px;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase}
+  .updated{margin-left:auto;font-size:11.5px;color:var(--ink-faint);white-space:nowrap}
 
   /* ---- transport ---- */
   .transport{
@@ -205,6 +206,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T12:09:00-04:00">Sep 9, 2026, 12:09 PM</time></div>
   </header>
 
   <div class="transport">
@@ -239,6 +241,30 @@
   </div>
 
   <div class="grid">
+
+    <section class="panel">
+      <h2>Evolution</h2>
+      <div class="row" data-param="randomInterval">
+        <div class="lab"><b>Random interval</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">
+          How often the whole patch rewrites itself as it plays. At zero it stays exactly where
+          you left it. Turn it up and the sliders start moving on their own &mdash; slowly at
+          first, then restlessly, eventually wandering into new keys and scales.
+        </div>
+      </div>
+      <div class="row" data-param="shiftLevel">
+        <div class="lab"><b>Random shift level</b><i></i></div>
+        <input type="range" min="0.10" max="0.50" step="0.001">
+        <div class="hint">How large each shift is when the Random interval fires.</div>
+      </div>
+      <div class="row" style="margin-bottom:18px">
+        <div class="lab"><b>Next shift</b><i id="mutLabel">&mdash;</i></div>
+        <div class="hint" style="margin-top:0">
+          Master volume is never touched, by either the Random interval or Randomize.
+        </div>
+      </div>
+    </section>
 
     <section class="panel">
       <h2>Harmony</h2>
@@ -374,30 +400,6 @@
       </div>
       <div class="selects" style="margin-bottom:16px">
         <label><span>Bass pattern</span><select id="bassPattern"></select></label>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Evolution</h2>
-      <div class="row" data-param="randomInterval">
-        <div class="lab"><b>Random interval</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">
-          How often the whole patch rewrites itself as it plays. At zero it stays exactly where
-          you left it. Turn it up and the sliders start moving on their own &mdash; slowly at
-          first, then restlessly, eventually wandering into new keys and scales.
-        </div>
-      </div>
-      <div class="row" data-param="shiftLevel">
-        <div class="lab"><b>Random shift level</b><i></i></div>
-        <input type="range" min="0.10" max="0.50" step="0.001">
-        <div class="hint">How large each shift is when the Random interval fires.</div>
-      </div>
-      <div class="row" style="margin-bottom:18px">
-        <div class="lab"><b>Next shift</b><i id="mutLabel">&mdash;</i></div>
-        <div class="hint" style="margin-top:0">
-          Master volume is never touched, by either the Random interval or Randomize.
-        </div>
       </div>
     </section>
 
@@ -545,19 +547,20 @@ let scaleName = "Aeolian (natural minor)";
 const scaleSteps = () => SCALES[scaleName];
 
 /* Harmony is a short looping chord progression (2-7 chords) rather than a
-   fixed 10-entry list — each chord is one or two scale steps from the last,
-   so the loop always reads as a drift rather than a series of jumps. The
-   whole loop periodically transposes to a new root (`rootDegree`, driven by
-   the Chord root change slider), which is how the key keeps moving without
-   the loop shape itself ever needing to change. */
-const STEP_CHOICES = [1, 1, 1, -1, -1, -1, 2, -2];   // ±1 three times as likely as ±2
+   fixed 10-entry list — each chord is a single adjacent scale step from the
+   last (a half or whole step, never a bigger leap), so the loop always reads
+   as a drift rather than a series of jumps. The whole loop periodically
+   transposes to a new root (`rootDegree`, driven by the Chord root change
+   slider), which is how the key keeps moving without the loop shape itself
+   ever needing to change. */
+const STEP_CHOICES = [1, -1];                        // one adjacent scale step, either direction
 const DEGREE_TETHER = 5;                             // soft bound on how far it strays
 
 let rootDegree = 0;         // current key-center offset, shifted by "Chord root change"
 let chordLoop = [0];        // relative degree offsets making up the current loop
 let loopIndex = 0;          // position within chordLoop
 
-// A random 2-7 chord loop, each step one or two scale degrees from the last.
+// A random 2-7 chord loop, each step a single scale degree from the last.
 function generateChordLoop(){
   const len = 2 + ((Math.random() * 6) | 0);
   const degrees = [0];

@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v5";   // v5: Randomness split into Random interval + Random shift level
+const CACHE_VERSION = "endless-v9";   // v9: Evolution panel moved to top-left, last-updated bump
 
 const PRECACHE = [
   "./",
