@@ -28,10 +28,12 @@
     overscroll-behavior-y:contain;          /* no pull-to-refresh mid-slider-drag */
   }
   body{
-    margin:0; background:
-      radial-gradient(1200px 700px at 15% -10%, #1b2547 0%, transparent 60%),
-      radial-gradient(900px 600px at 100% 110%, #2a1c3d 0%, transparent 55%),
-      linear-gradient(180deg,var(--bg0),var(--bg1) 55%, var(--bg0));
+    margin:0;
+    background-color:var(--bg0);
+    background-image: linear-gradient(180deg,var(--bg0),var(--bg1) 55%, var(--bg0));
+    /* tiles seamlessly down a long page since its top and bottom stops match. */
+    background-repeat:repeat-y;
+    background-size:100% 100vh;
     color:var(--ink);
     font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -206,7 +208,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
-    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T13:44:00-04:00">Sep 9, 2026, 1:44 PM</time></div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T15:25:00-04:00">Sep 9, 2026, 3:25 PM</time></div>
   </header>
 
   <div class="transport">
@@ -255,7 +257,7 @@
       </div>
       <div class="row" data-param="shiftLevel">
         <div class="lab"><b>Random shift level</b><i></i></div>
-        <input type="range" min="0.10" max="0.50" step="0.001">
+        <input type="range" min="0.05" max="0.50" step="0.001">
         <div class="hint">How large each shift is when the Random interval fires.</div>
       </div>
       <div class="row" style="margin-bottom:18px">
@@ -281,6 +283,11 @@
         <div class="lab"><b>Note hold</b><i></i></div>
         <input type="range" min="4" max="48" step="1">
         <div class="hint">How many beats each note holds before the loop moves to the next.</div>
+      </div>
+      <div class="row" data-param="harmonyHoldBeats">
+        <div class="lab"><b>Harmony hold</b><i></i></div>
+        <input type="range" min="2" max="48" step="1">
+        <div class="hint">A second note, a third or fifth away in the same scale, that changes on its own beat count &mdash; heard through the Choir.</div>
       </div>
       <div class="row" data-param="register">
         <div class="lab"><b>Register</b><i></i></div>
@@ -312,7 +319,7 @@
       <h2>Layers</h2>
       <div class="row" data-param="choir">
         <div class="lab"><b>Choir</b><i></i></div><input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Wordless formant voices &mdash; vowel sounds, never words.</div>
+        <div class="hint">Wordless formant voices &mdash; sings the Harmony note, a third/fifth away from the root.</div>
       </div>
       <div class="row" data-param="sub">
         <div class="lab"><b>Sub</b><i></i></div><input type="range" min="0" max="1" step="0.001">
@@ -389,7 +396,6 @@
 
     <section class="panel">
       <h2>Pulse &amp; Bass</h2>
-      <label class="toggle"><input type="checkbox" id="pulseOn"><b>Enable pulse &amp; bass</b></label>
       <div class="row" data-param="pulseLevel">
         <div class="lab"><b>Pulse level</b><i></i></div><input type="range" min="0" max="1" step="0.001">
       </div>
@@ -436,6 +442,7 @@ const PARAMS = {
   // harmony
   chordRootSecs: { value: 26, fmt: v => v.toFixed(0) + " s" },
   noteHoldBeats: { value: 16, fmt: v => v.toFixed(0) + " beats" },
+  harmonyHoldBeats: { value: 6, fmt: v => v.toFixed(0) + " beats" },
   register:   { value: -12,   fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
   // tone
   brightness: { value: 0.52, fmt: v => hzLabel(brightnessHz(v)) },
@@ -490,11 +497,14 @@ function mutInterval(v){ return 130 * Math.pow(0.062, v); }
    themselves. A uniform 0-1 roll on every parameter mostly yields
    either silence or mud; these ranges keep every dice roll usable.
    `volume` is absent on purpose — nothing random ever touches it.
+   `randomInterval`'s floor (0.02) is well above the 0.005 "locked"
+   threshold, so Randomize/Evolution can never turn it off.
    ============================================================ */
 
 const RANDOM_BOUNDS = {
   chordRootSecs: [10, 70],
   noteHoldBeats: [4, 32],
+  harmonyHoldBeats: [2, 32],
   register:   [-32, 8],
   brightness: [0.28, 0.86],
   width:      [0.15, 0.90],
@@ -519,15 +529,19 @@ const RANDOM_BOUNDS = {
   pulseTone:  [0.10, 0.85],
   bass:       [0.25, 0.80],
   bassTone:   [0.15, 0.85],
+  randomInterval: [0.02, 0.5],
+  shiftLevel:     [0.05, 0.50],
 };
 
-const INTEGER_PARAMS = { chordRootSecs: 1, noteHoldBeats: 1, register: 1, bpm: 1 };
+const INTEGER_PARAMS = { chordRootSecs: 1, noteHoldBeats: 1, harmonyHoldBeats: 1, register: 1, bpm: 1 };
 
-// Eased continuously by the Random Interval slider.
+// Eased continuously by the Random Interval slider. `shiftLevel` is deliberately
+// excluded — letting it mutate itself made the slider's felt intensity unreliable.
 const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
                         "organ","violin","frenchHorn","doubleBass",
                         "bells","density","timbre","decay","reverb","echo","echoTime",
-                        "chordRootSecs","noteHoldBeats","pulseLevel","pulseTone","bass","bassTone"];
+                        "chordRootSecs","noteHoldBeats","harmonyHoldBeats","pulseLevel","pulseTone","bass","bassTone",
+                        "randomInterval"];
 
 function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
 
@@ -561,20 +575,20 @@ let scaleName = "Aeolian (natural minor)";
 const scaleSteps = () => SCALES[scaleName];
 
 /* Harmony is a short looping chord progression (2-7 chords) rather than a
-   fixed 10-entry list — each chord is a single adjacent scale step from the
-   last (a half or whole step, never a bigger leap), so the loop always reads
-   as a drift rather than a series of jumps. The whole loop periodically
-   transposes to a new root (`rootDegree`, driven by the Chord root change
-   slider), which is how the key keeps moving without the loop shape itself
-   ever needing to change. */
-const STEP_CHOICES = [1, -1];                        // one adjacent scale step, either direction
+   fixed 10-entry list — each step either holds the same scale degree or moves
+   by a small number of scale steps, weighted toward smaller moves, so the
+   loop reads as an occasional drift rather than constant motion. The whole
+   loop periodically transposes to a new root (`rootDegree`, driven by the
+   Chord root change slider), which is how the key keeps moving without the
+   loop shape itself ever needing to change. */
+const STEP_CHOICES = [0,0,0, 1,1,1,-1,-1,-1, 2,2,-2,-2, 3,-3];   // 20% hold, rest weighted toward smaller steps
 const DEGREE_TETHER = 5;                             // soft bound on how far it strays
 
 let rootDegree = 0;         // current key-center offset, shifted by "Chord root change"
 let chordLoop = [0];        // relative degree offsets making up the current loop
 let loopIndex = 0;          // position within chordLoop
 
-// A random 2-7 chord loop, each step a single scale degree from the last.
+// A random 2-7 chord loop, each step a handful of scale degrees from the last.
 function generateChordLoop(){
   const len = 2 + ((Math.random() * 6) | 0);
   const degrees = [0];
@@ -597,6 +611,10 @@ function shiftChordRoot(){
   }
   rootDegree += step;
 }
+
+// Thirds and fifths, up or down — always consonant with the current root, in-scale.
+const HARMONY_INTERVALS = [2, 4, -2, -4];
+let harmonyInterval = HARMONY_INTERVALS[0];   // current scale-step offset from the root
 
 function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
@@ -679,6 +697,7 @@ const driftLFOs = [];   // { gain, depth } — depth scaled by the Drift slider
 let currentChord = null;
 let nextChordTime = 0;
 let nextRootShiftTime = 0;
+let nextHarmonyTime = 0;
 let nextBellTime = 0;
 let nextPulseTime = 0;
 let pulseStep = 0;          // position on the shared eighth-note grid
@@ -891,12 +910,14 @@ function makeFixedLFO(rateHz, depth, target, phaseOffset){
 }
 
 /* Slow LFO helper. Returns the depth gain so Drift can scale it. */
+// Halves the effective depth across the whole slider — full Drift was overpowering.
+const DRIFT_SCALE = 0.5;
 function makeLFO(rateHz, depth, target, phaseOffset){
   const osc = ctx.createOscillator();
   osc.type = "sine";
   osc.frequency.value = rateHz;
   const g = ctx.createGain();
-  g.gain.value = depth * P("drift");
+  g.gain.value = depth * P("drift") * DRIFT_SCALE;
   osc.connect(g);
   g.connect(target);
   // stagger phases so layers don't breathe in lockstep
@@ -1411,6 +1432,18 @@ function playPulse(time){
 
 /* ---------- harmony application ---------- */
 
+/* The Harmony note — a third or fifth above/below the current root, still in
+   the same scale — is sung by the choir. It changes on its own beat count
+   (Harmony hold), independent of the root, so the two drift in and out of
+   sync rather than always moving together. */
+function applyHarmony(glideSecs){
+  if (!currentChord) return;
+  const base = 36 + Math.round(P("register"));
+  const midi = degreeToMidi(currentChord.degree + harmonyInterval, base) + 12;
+  const hz = midiToHz(midi);
+  choirVoices.forEach(v => v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs)));
+}
+
 function applyChord(chord, glideSecs){
   currentChord = chord;
   const root = chord.notes[0];
@@ -1421,15 +1454,13 @@ function applyChord(chord, glideSecs){
     glide(v.filter.frequency, hz * rand(4, 9), glideSecs);
   });
 
-  // choir sits an octave above the root, in unison with the rest
+  // choir sings the Harmony note (see applyHarmony) — only the vowel morphs here
   choirVoices.forEach((v, i) => {
-    const m = root + 12;
-    v.oscs.forEach(osc => glide(osc.frequency, midiToHz(m), glideSecs));
-    // morph to a new vowel with each note
     const nv = (v.vowel + 1 + ((Math.random() * 2) | 0)) % VOWELS.length;
     v.vowel = nv;
     v.formants.forEach((bp, fi) => glide(bp.frequency, VOWELS[nv][fi], glideSecs));
   });
+  applyHarmony(glideSecs);
 
   if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(root - 12), glideSecs);
 
@@ -1468,7 +1499,8 @@ function scheduleAhead(){
   // harmony: the loop advances one note every N beats, so it's always locked to the tempo
   if (ctx.currentTime >= nextChordTime){
     const holdSecs = 60 / P("bpm") * P("noteHoldBeats");
-    applyChord(nextChord(), Math.min(holdSecs * 0.5, 3));
+    // glide across most of the hold so pitch drifts gradually instead of swooping then sitting still
+    applyChord(nextChord(), Math.min(holdSecs * 0.85, 10));
     nextChordTime = ctx.currentTime + holdSecs;
   }
 
@@ -1476,6 +1508,14 @@ function scheduleAhead(){
   if (ctx.currentTime >= nextRootShiftTime){
     shiftChordRoot();
     nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
+  }
+
+  // harmony note: a third/fifth above/below the root, on its own beat count
+  if (ctx.currentTime >= nextHarmonyTime){
+    harmonyInterval = choice(HARMONY_INTERVALS);
+    const harmHoldSecs = 60 / P("bpm") * P("harmonyHoldBeats");
+    applyHarmony(Math.min(harmHoldSecs * 0.85, 10));
+    nextHarmonyTime = ctx.currentTime + harmHoldSecs;
   }
 
   // bells
@@ -1499,8 +1539,9 @@ function scheduleAhead(){
 
   /* Pulse + bass share one eighth-note grid so they can never drift apart.
      The kick lands on even steps (the quarter notes); the bass follows the
-     selected pattern and takes its pitch from whatever chord is current. */
-  if (document.getElementById("pulseOn").checked){
+     selected pattern and takes its pitch from whatever chord is current.
+     No on/off switch — the level sliders themselves gate playback. */
+  if (P("pulseLevel") > 0.001 || P("bass") > 0.001){
     const stepDur = 60 / P("bpm") / 2;                  // one eighth note
     if (nextPulseTime < ctx.currentTime){
       nextPulseTime = ctx.currentTime + 0.05;
@@ -1658,6 +1699,7 @@ async function start(){
   chordLoop = generateChordLoop();
   loopIndex = 0;
   rootDegree = 0;
+  harmonyInterval = choice(HARMONY_INTERVALS);
   pulseStep = 0;
   lastTick = 0;
   nextMutTime = 0;
@@ -1666,6 +1708,7 @@ async function start(){
   applyChord(nextChord(), 0.05);
   nextChordTime = ctx.currentTime + 60 / P("bpm") * P("noteHoldBeats");
   nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
+  nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * P("harmonyHoldBeats");
 
   smooth(nodes.vol.gain, masterTarget(), 0.2);
   smooth(nodes.master.gain, 1, 1.6);
@@ -1725,7 +1768,7 @@ function applyParam(name){
     case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
     case "bass":       smooth(nodes.bassGain.gain, v * 0.30, 0.15); break;
     case "drift":
-      driftLFOs.forEach(l => smooth(l.gain.gain, l.depth * v, 0.4));
+      driftLFOs.forEach(l => smooth(l.gain.gain, l.depth * v * DRIFT_SCALE, 0.4));
       break;
     case "width":
       padVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * v * 16, 0.3)));
@@ -1821,18 +1864,13 @@ function randomizeAll(){
   chordLoop = generateChordLoop();
   loopIndex = 0;
   rootDegree = choice([-2, -1, 0, 0, 1, 2]);
+  harmonyInterval = choice(HARMONY_INTERVALS);
   const bp = document.getElementById("bassPattern");
   if (bp){
     bassPatternName = choice(Object.keys(BASS_PATTERNS));
     bp.value = bassPatternName;
   }
   setSelects();
-
-  const pulse = document.getElementById("pulseOn");
-  if (pulse){
-    pulse.checked = Math.random() < 0.35;
-    nextPulseTime = 0;
-  }
 
   // one harmony rebuild covers the new root, scale and register together
   if (ctx && currentChord) applyChord(nextChord(), 2.5);
@@ -1841,6 +1879,7 @@ function randomizeAll(){
   if (ctx){
     nextMutTime = ctx.currentTime + mutInterval(P("randomInterval"));
     nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
+    nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * P("harmonyHoldBeats");
   }
 
   const b = document.getElementById("randomBtn");
@@ -2052,10 +2091,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btn = document.getElementById("playBtn");
   btn.addEventListener("click", () => { running ? stop() : start(); });
-
-  document.getElementById("pulseOn").addEventListener("change", () => {
-    nextPulseTime = 0;
-  });
 
   document.getElementById("randomBtn").addEventListener("click", randomizeAll);
 
