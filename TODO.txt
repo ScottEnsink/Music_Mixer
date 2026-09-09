@@ -1,9 +1,11 @@
 --just a text list of ideas to implement or things to fix
 
-1- move the Evolution control to the top
+DONE 1- move the Evolution control to the top
 2- fix the weird shading on the controls that don't fit on the page vertically
 3- still improve the sound away from the strange humming computer sound to more ambient/strings
 4- make sure the Random shifts are happening only on the interval--they seem to be happening randomly now
 5- improve the choir sounds to more Ahh than whatever it's doing now
 6- add in spoken words from random literature
+7- add piano chords
+8- add wind chimes
 

@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v9";   // v9: Evolution panel moved to top-left, last-updated bump
+const CACHE_VERSION = "endless-v14";  // v14: Register extended two more octaves lower (-36 min)
 
 const PRECACHE = [
   "./",

@@ -206,7 +206,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
-    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T12:09:00-04:00">Sep 9, 2026, 12:09 PM</time></div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T13:40:00-04:00">Sep 9, 2026, 1:40 PM</time></div>
   </header>
 
   <div class="transport">
@@ -277,9 +277,14 @@
         <input type="range" min="6" max="90" step="1">
         <div class="hint">How often the loop's root shifts to a new key center. Chords themselves loop in sync with the tempo.</div>
       </div>
+      <div class="row" data-param="noteHoldBeats">
+        <div class="lab"><b>Note hold</b><i></i></div>
+        <input type="range" min="4" max="48" step="1">
+        <div class="hint">How many beats each note holds before the loop moves to the next.</div>
+      </div>
       <div class="row" data-param="register">
         <div class="lab"><b>Register</b><i></i></div>
-        <input type="range" min="-12" max="12" step="1">
+        <input type="range" min="-36" max="12" step="1">
         <div class="hint">Transposes everything in semitones. Lower is heavier.</div>
       </div>
     </section>
@@ -323,7 +328,7 @@
       <div class="row" data-param="pad">
         <div class="lab"><b>Synth</b><i></i></div>
         <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">The main detuned-saw pad &mdash; the classic synthesizer voice.</div>
+        <div class="hint">Warm analog strings &mdash; a soft saw/triangle blend, no sci-fi filter sweep.</div>
       </div>
       <div class="row" data-param="organ">
         <div class="lab"><b>Organ</b><i></i></div>
@@ -425,7 +430,8 @@
 const PARAMS = {
   // harmony
   chordRootSecs: { value: 26, fmt: v => v.toFixed(0) + " s" },
-  register:   { value: 0,    fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
+  noteHoldBeats: { value: 4,  fmt: v => v.toFixed(0) + " beats" },
+  register:   { value: -12,   fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
   // tone
   brightness: { value: 0.52, fmt: v => hzLabel(brightnessHz(v)) },
   width:      { value: 0.45, fmt: pct },
@@ -456,8 +462,8 @@ const PARAMS = {
   bass:       { value: 0.55, fmt: pct },
   bassTone:   { value: 0.45, fmt: pct },
   // evolution
-  randomInterval: { value: 0,    fmt: v => v <= 0.005 ? "locked" : "every ~" + Math.round(mutInterval(v)) + " s" },
-  shiftLevel:     { value: 0.25, fmt: pct },
+  randomInterval: { value: 0.0288, fmt: v => v <= 0.005 ? "locked" : "every ~" + Math.round(mutInterval(v)) + " s" },
+  shiftLevel:     { value: 0.10,   fmt: pct },
 };
 
 const P = name => PARAMS[name].value;
@@ -482,7 +488,8 @@ function mutInterval(v){ return 130 * Math.pow(0.062, v); }
 
 const RANDOM_BOUNDS = {
   chordRootSecs: [10, 70],
-  register:   [-8, 8],
+  noteHoldBeats: [4, 32],
+  register:   [-32, 8],
   brightness: [0.28, 0.86],
   width:      [0.15, 0.90],
   drift:      [0.20, 0.90],
@@ -507,13 +514,13 @@ const RANDOM_BOUNDS = {
   bassTone:   [0.15, 0.85],
 };
 
-const INTEGER_PARAMS = { chordRootSecs: 1, register: 1, bpm: 1 };
+const INTEGER_PARAMS = { chordRootSecs: 1, noteHoldBeats: 1, register: 1, bpm: 1 };
 
 // Eased continuously by the Random Interval slider.
 const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
                         "organ","violin","frenchHorn",
                         "bells","density","timbre","decay","reverb","echo","echoTime",
-                        "chordRootSecs","pulseLevel","pulseTone","bass","bassTone"];
+                        "chordRootSecs","noteHoldBeats","pulseLevel","pulseTone","bass","bassTone"];
 
 function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
 
@@ -609,13 +616,15 @@ function degreeToMidi(degree, baseOctaveMidi){
   return baseOctaveMidi + rootPc + steps[idx] + 12 * oct;
 }
 
-/* Build the next chord: four stacked scale tones spread across two octaves. */
+/* A single melodic note per step, not a stacked chord — every sustained layer
+   plays the same root in unison (just spread across octaves/detune). `notes[1]`
+   is a lone scale step above the root, kept only for the bass's occasional
+   off-root hit, and is never sounded by the pad/organ/violin/horn/choir. */
 function nextChord(){
   const degree = rootDegree + chordLoop[loopIndex % chordLoop.length];
   loopIndex++;
   const base = 36 + Math.round(P("register"));      // C2-ish + transpose
-  const voicing = [0, 2, 4, 6];                     // 7th-chord shape in scale steps
-  const notes = voicing.map((v, i) => degreeToMidi(degree + v, base + (i >= 2 ? 12 : 0)));
+  const notes = [degreeToMidi(degree, base), degreeToMidi(degree + 2, base)];
   return { degree, notes };
 }
 
@@ -896,8 +905,8 @@ function buildPad(){
   for (let i = 0; i < NUM_PAD_VOICES; i++){
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = rand(500, 1400);
-    filter.Q.value = 1.1;
+    filter.frequency.value = rand(700, 1200);
+    filter.Q.value = 0.8;
 
     const amp = ctx.createGain();
     amp.gain.value = 1 / NUM_PAD_VOICES;
@@ -916,18 +925,18 @@ function buildPad(){
       osc.frequency.value = 110;
       // symmetric spread: -1, 0, +1 ...
       osc._spread = k - (OSC_PER_VOICE - 1) / 2;
-      osc.detune.value = osc._spread * P("width") * 34;
+      osc.detune.value = osc._spread * P("width") * 16;
       const og = ctx.createGain();
-      og.gain.value = (k === 0 ? 0.5 : 0.32) / OSC_PER_VOICE;
+      og.gain.value = (k === 0 ? 0.35 : 0.40) / OSC_PER_VOICE;
       osc.connect(og);
       og.connect(filter);
       osc.start();
       oscs.push(osc);
     }
 
-    // filter sweep + amplitude breathing, both scaled by Drift
-    makeLFO(rand(0.013, 0.055), 900, filter.detune, rand(0, 4));
-    makeLFO(rand(0.02, 0.07), 0.45 / NUM_PAD_VOICES, amp.gain, rand(0, 4));
+    // gentle, steady warmth — no wide filter sweep, just a soft breathing swell
+    makeLFO(rand(0.013, 0.055), 120, filter.detune, rand(0, 4));
+    makeLFO(rand(0.02, 0.07), 0.35 / NUM_PAD_VOICES, amp.gain, rand(0, 4));
 
     padVoices.push({ oscs, filter, amp, pan });
   }
@@ -1352,38 +1361,38 @@ function playPulse(time){
 
 function applyChord(chord, glideSecs){
   currentChord = chord;
-  const notes = chord.notes;
+  const root = chord.notes[0];
 
   padVoices.forEach((v, i) => {
-    const hz = midiToHz(notes[i % notes.length]);
+    const hz = midiToHz(root);
     v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs));
     glide(v.filter.frequency, hz * rand(4, 9), glideSecs);
   });
 
-  // choir sits an octave above, on the root and the chord's third
+  // choir sits an octave above the root, in unison with the rest
   choirVoices.forEach((v, i) => {
-    const m = notes[i === 0 ? 0 : 1] + 12;
+    const m = root + 12;
     v.oscs.forEach(osc => glide(osc.frequency, midiToHz(m), glideSecs));
-    // morph to a new vowel with each chord
+    // morph to a new vowel with each note
     const nv = (v.vowel + 1 + ((Math.random() * 2) | 0)) % VOWELS.length;
     v.vowel = nv;
     v.formants.forEach((bp, fi) => glide(bp.frequency, VOWELS[nv][fi], glideSecs));
   });
 
-  if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(notes[0] - 12), glideSecs);
+  if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(root - 12), glideSecs);
 
   organVoices.forEach((v, i) => {
-    const hz = midiToHz(notes[i % notes.length]);
+    const hz = midiToHz(root);
     v.oscs.forEach(osc => glide(osc.frequency, hz * osc._ratio, glideSecs));
   });
 
   // violin sits an octave up, in its natural range
   violinVoices.forEach((v, i) => {
-    glide(v.osc.frequency, midiToHz(notes[i % notes.length] + 12), glideSecs);
+    glide(v.osc.frequency, midiToHz(root + 12), glideSecs);
   });
 
   hornVoices.forEach((v, i) => {
-    const hz = midiToHz(notes[i % notes.length]);
+    const hz = midiToHz(root);
     glide(v.osc.frequency, hz, glideSecs);
     glide(v.sub.frequency, hz, glideSecs);
   });
@@ -1398,11 +1407,11 @@ function scheduleAhead(){
   if (!running) return;
   const horizon = ctx.currentTime + lookahead();
 
-  // harmony: the loop advances one chord per bar, so it's always locked to the tempo
+  // harmony: the loop advances one note every N beats, so it's always locked to the tempo
   if (ctx.currentTime >= nextChordTime){
-    const barSecs = 60 / P("bpm") * 4;
-    applyChord(nextChord(), Math.min(barSecs * 0.5, 3));
-    nextChordTime = ctx.currentTime + barSecs;
+    const holdSecs = 60 / P("bpm") * P("noteHoldBeats");
+    applyChord(nextChord(), Math.min(holdSecs * 0.5, 3));
+    nextChordTime = ctx.currentTime + holdSecs;
   }
 
   // chord root: periodically transposes the whole loop to a new key center
@@ -1597,7 +1606,7 @@ async function start(){
   mutTargets = {};
 
   applyChord(nextChord(), 0.05);
-  nextChordTime = ctx.currentTime + 60 / P("bpm") * 4;
+  nextChordTime = ctx.currentTime + 60 / P("bpm") * P("noteHoldBeats");
   nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
 
   smooth(nodes.vol.gain, masterTarget(), 0.2);
@@ -1660,7 +1669,7 @@ function applyParam(name){
       driftLFOs.forEach(l => smooth(l.gain.gain, l.depth * v, 0.4));
       break;
     case "width":
-      padVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * v * 34, 0.3)));
+      padVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * v * 16, 0.3)));
       choirVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * (6 + v * 14), 0.3)));
       break;
     case "register":
