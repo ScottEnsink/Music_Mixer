@@ -208,7 +208,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
-    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T16:06:00-04:00">Sep 9, 2026, 4:06 PM</time></div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T19:36:39-04:00">Sep 9, 2026, 7:36 PM</time></div>
   </header>
 
   <div class="transport">
@@ -279,21 +279,55 @@
         <input type="range" min="6" max="90" step="1">
         <div class="hint">How often the loop's root shifts to a new key center. Chords themselves loop in sync with the tempo.</div>
       </div>
-      <div class="row" data-param="noteHoldBeats">
-        <div class="lab"><b>Note hold</b><i></i></div>
-        <input type="range" min="4" max="48" step="1">
-        <div class="hint">How many beats each note holds before the loop moves to the next.</div>
-      </div>
-      <div class="row" data-param="harmonyHoldBeats">
-        <div class="lab"><b>Harmony hold</b><i></i></div>
-        <input type="range" min="2" max="48" step="1">
-        <div class="hint">A second note, a third or fifth away in the same scale, that changes on its own beat count &mdash; heard through the Choir.</div>
-      </div>
       <div class="row" data-param="register">
         <div class="lab"><b>Register</b><i></i></div>
         <input type="range" min="-36" max="12" step="1">
         <div class="hint">Transposes everything in semitones. Lower is heavier.</div>
       </div>
+    </section>
+
+    <section class="panel">
+      <h2>Bass</h2>
+      <div class="row" data-param="bassNoteHold"><div class="lab"><b>Note hold</b><i></i></div><input type="range" min="4" max="48" step="1"></div>
+      <div class="row" data-param="bassSynth"><div class="lab"><b>Synth volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="bassOrgan"><div class="lab"><b>Organ volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="bassViolin"><div class="lab"><b>Violin volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="bassFrenchHorn"><div class="lab"><b>French horn volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="bassDoubleBass"><div class="lab"><b>Double Bass volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="bassSine"><div class="lab"><b>Sine volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tenor</h2>
+      <div class="row" data-param="tenorNoteHold"><div class="lab"><b>Note hold</b><i></i></div><input type="range" min="4" max="48" step="1"></div>
+      <div class="row" data-param="tenorSynth"><div class="lab"><b>Synth volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="tenorOrgan"><div class="lab"><b>Organ volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="tenorViolin"><div class="lab"><b>Violin volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="tenorFrenchHorn"><div class="lab"><b>French horn volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="tenorDoubleBass"><div class="lab"><b>Double Bass volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="tenorSine"><div class="lab"><b>Sine volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Alto</h2>
+      <div class="row" data-param="altoNoteHold"><div class="lab"><b>Note hold</b><i></i></div><input type="range" min="4" max="48" step="1"></div>
+      <div class="row" data-param="altoSynth"><div class="lab"><b>Synth volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="altoOrgan"><div class="lab"><b>Organ volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="altoViolin"><div class="lab"><b>Violin volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="altoFrenchHorn"><div class="lab"><b>French horn volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="altoDoubleBass"><div class="lab"><b>Double Bass volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="altoSine"><div class="lab"><b>Sine volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Soprano</h2>
+      <div class="row" data-param="sopranoNoteHold"><div class="lab"><b>Note hold</b><i></i></div><input type="range" min="4" max="48" step="1"></div>
+      <div class="row" data-param="sopranoSynth"><div class="lab"><b>Synth volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="sopranoOrgan"><div class="lab"><b>Organ volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="sopranoViolin"><div class="lab"><b>Violin volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="sopranoFrenchHorn"><div class="lab"><b>French horn volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="sopranoDoubleBass"><div class="lab"><b>Double Bass volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
+      <div class="row" data-param="sopranoSine"><div class="lab"><b>Sine volume</b><i></i></div><input type="range" min="0" max="1" step="0.001"></div>
     </section>
 
     <section class="panel">
@@ -327,40 +361,6 @@
       <div class="row" data-param="texture">
         <div class="lab"><b>Texture</b><i></i></div><input type="range" min="0" max="1" step="0.001">
         <div class="hint">Filtered noise: air, wind, distant static.</div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Instruments</h2>
-      <div class="row" data-param="pad">
-        <div class="lab"><b>Synth</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Warm analog strings &mdash; a soft saw/triangle blend, no sci-fi filter sweep.</div>
-      </div>
-      <div class="row" data-param="organ">
-        <div class="lab"><b>Organ</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Drawbar harmonics with a touch of leslie tremolo.</div>
-      </div>
-      <div class="row" data-param="violin">
-        <div class="lab"><b>Violin</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Bowed sawtooth tone with vibrato, sitting an octave up.</div>
-      </div>
-      <div class="row" data-param="frenchHorn">
-        <div class="lab"><b>French horn</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Warm, mellow brass &mdash; low-pass filtered triangle and sine.</div>
-      </div>
-      <div class="row" data-param="doubleBass">
-        <div class="lab"><b>Double bass</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Sustained bowed bass, an octave below the root.</div>
-      </div>
-      <div class="row" data-param="sine">
-        <div class="lab"><b>Sine</b><i></i></div>
-        <input type="range" min="0" max="1" step="0.001">
-        <div class="hint">A pure, unfiltered sine tone an octave above the root.</div>
       </div>
     </section>
 
@@ -443,27 +443,34 @@
    Parameter model
    ============================================================ */
 
+const REGISTER_GROUPS = [
+  { id: "bass", label: "Bass", offset: -24 },
+  { id: "tenor", label: "Tenor", offset: -12 },
+  { id: "alto", label: "Alto", offset: 0 },
+  { id: "soprano", label: "Soprano", offset: 12 },
+];
+const BAND_GAIN_SCALE = { synth: 0.22, organ: 0.24, violin: 0.20, frenchHorn: 0.26, doubleBass: 0.28, sine: 0.22 };
+
 const PARAMS = {
   // harmony
   chordRootSecs: { value: 26, fmt: v => v.toFixed(0) + " s" },
-  noteHoldBeats: { value: 16, fmt: v => v.toFixed(0) + " beats" },
-  harmonyHoldBeats: { value: 6, fmt: v => v.toFixed(0) + " beats" },
   register:   { value: -12,   fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
+  bassNoteHold: { value: 16, fmt: v => v.toFixed(0) + " beats" },
+  tenorNoteHold: { value: 16, fmt: v => v.toFixed(0) + " beats" },
+  altoNoteHold: { value: 16, fmt: v => v.toFixed(0) + " beats" },
+  sopranoNoteHold: { value: 16, fmt: v => v.toFixed(0) + " beats" },
   // tone
   brightness: { value: 0.52, fmt: v => hzLabel(brightnessHz(v)) },
   width:      { value: 0.45, fmt: pct },
   drift:      { value: 0.5,  fmt: pct },
   // layers
-  pad:        { value: 0.75, fmt: pct },
   choir:      { value: 0.35, fmt: pct },
   sub:        { value: 0.5,  fmt: pct },
   texture:    { value: 0.28, fmt: pct },
-  // instruments
-  organ:      { value: 0,    fmt: pct },
-  violin:     { value: 0,    fmt: pct },
-  frenchHorn: { value: 0,    fmt: pct },
-  doubleBass: { value: 0.5,  fmt: pct },
-  sine:       { value: 0,    fmt: pct },
+  bassSynth:  { value: 0.75, fmt: pct }, bassOrgan: { value: 0, fmt: pct }, bassViolin: { value: 0, fmt: pct }, bassFrenchHorn: { value: 0, fmt: pct }, bassDoubleBass: { value: 0.5, fmt: pct }, bassSine: { value: 0, fmt: pct },
+  tenorSynth: { value: 0.55, fmt: pct }, tenorOrgan: { value: 0, fmt: pct }, tenorViolin: { value: 0, fmt: pct }, tenorFrenchHorn: { value: 0, fmt: pct }, tenorDoubleBass: { value: 0, fmt: pct }, tenorSine: { value: 0, fmt: pct },
+  altoSynth:  { value: 0.35, fmt: pct }, altoOrgan: { value: 0, fmt: pct }, altoViolin: { value: 0, fmt: pct }, altoFrenchHorn: { value: 0, fmt: pct }, altoDoubleBass: { value: 0, fmt: pct }, altoSine: { value: 0, fmt: pct },
+  sopranoSynth: { value: 0.25, fmt: pct }, sopranoOrgan: { value: 0, fmt: pct }, sopranoViolin: { value: 0, fmt: pct }, sopranoFrenchHorn: { value: 0, fmt: pct }, sopranoDoubleBass: { value: 0, fmt: pct }, sopranoSine: { value: 0, fmt: pct },
   // bells
   bells:      { value: 0.5,  fmt: pct },
   density:    { value: 0.35, fmt: v => (bellsPerMin(v)).toFixed(1) + " /min" },
@@ -511,21 +518,18 @@ function mutInterval(v){ return 130 * Math.pow(0.062, v); }
 
 const RANDOM_BOUNDS = {
   chordRootSecs: [10, 70],
-  noteHoldBeats: [4, 32],
-  harmonyHoldBeats: [2, 32],
   register:   [-32, 8],
+  bassNoteHold: [4, 32], tenorNoteHold: [4, 32], altoNoteHold: [4, 32], sopranoNoteHold: [4, 32],
   brightness: [0.28, 0.86],
   width:      [0.15, 0.90],
   drift:      [0.20, 0.90],
-  pad:        [0.40, 1.00],
   choir:      [0.05, 0.85],
   sub:        [0.20, 0.80],
   texture:    [0.05, 0.60],
-  organ:      [0.00, 0.70],
-  violin:     [0.00, 0.65],
-  frenchHorn: [0.00, 0.65],
-  doubleBass: [0.00, 0.65],
-  sine:       [0.00, 0.70],
+  bassSynth: [0.00, 1.00], bassOrgan: [0.00, 0.70], bassViolin: [0.00, 0.65], bassFrenchHorn: [0.00, 0.65], bassDoubleBass: [0.00, 0.65], bassSine: [0.00, 0.70],
+  tenorSynth: [0.00, 1.00], tenorOrgan: [0.00, 0.70], tenorViolin: [0.00, 0.65], tenorFrenchHorn: [0.00, 0.65], tenorDoubleBass: [0.00, 0.65], tenorSine: [0.00, 0.70],
+  altoSynth: [0.00, 1.00], altoOrgan: [0.00, 0.70], altoViolin: [0.00, 0.65], altoFrenchHorn: [0.00, 0.65], altoDoubleBass: [0.00, 0.65], altoSine: [0.00, 0.70],
+  sopranoSynth: [0.00, 1.00], sopranoOrgan: [0.00, 0.70], sopranoViolin: [0.00, 0.65], sopranoFrenchHorn: [0.00, 0.65], sopranoDoubleBass: [0.00, 0.65], sopranoSine: [0.00, 0.70],
   bells:      [0.20, 0.85],
   density:    [0.05, 0.75],
   timbre:     [0.05, 0.90],
@@ -541,14 +545,18 @@ const RANDOM_BOUNDS = {
   randomInterval: [0.02, 0.5],
 };
 
-const INTEGER_PARAMS = { chordRootSecs: 1, noteHoldBeats: 1, harmonyHoldBeats: 1, register: 1, bpm: 1 };
+const INTEGER_PARAMS = { chordRootSecs: 1, register: 1, bpm: 1,
+                         bassNoteHold: 1, tenorNoteHold: 1, altoNoteHold: 1, sopranoNoteHold: 1 };
 
 // Eased continuously by the Random Interval slider. `shiftLevel` is deliberately
 // excluded — letting it mutate itself made the slider's felt intensity unreliable.
-const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
-                        "organ","violin","frenchHorn","doubleBass","sine",
+const MUT_CONTINUOUS = ["brightness","width","drift","choir","sub","texture",
+                        "bassSynth","bassOrgan","bassViolin","bassFrenchHorn","bassDoubleBass","bassSine",
+                        "tenorSynth","tenorOrgan","tenorViolin","tenorFrenchHorn","tenorDoubleBass","tenorSine",
+                        "altoSynth","altoOrgan","altoViolin","altoFrenchHorn","altoDoubleBass","altoSine",
+                        "sopranoSynth","sopranoOrgan","sopranoViolin","sopranoFrenchHorn","sopranoDoubleBass","sopranoSine",
                         "bells","density","timbre","decay","reverb","echo","echoTime",
-                        "chordRootSecs","noteHoldBeats","harmonyHoldBeats","pulseLevel","pulseTone","bass","bassTone",
+                        "chordRootSecs","pulseLevel","pulseTone","bass","bassTone",
                         "randomInterval"];
 
 function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
@@ -622,6 +630,7 @@ function shiftChordRoot(){
 
 // Thirds and fifths, up or down — always consonant with the current root, in-scale.
 const HARMONY_INTERVALS = [2, 4, -2, -4];
+const HARMONY_HOLD_BEATS = 6;
 let harmonyInterval = HARMONY_INTERVALS[0];   // current scale-step offset from the root
 
 function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
@@ -713,9 +722,10 @@ const hornVoices = [];
 const doubleBassVoices = [];
 const sineVoices = [];
 const driftLFOs = [];   // { gain, depth } — depth scaled by the Drift slider
+let buildingBand = null;
 
 let currentChord = null;
-let nextChordTime = 0;
+const nextBandChordTimes = {};
 let nextRootShiftTime = 0;
 let nextHarmonyTime = 0;
 let nextBellTime = 0;
@@ -904,16 +914,30 @@ function buildGraph(){
 
   nodes.noiseBuffer = makeNoiseBuffer(4);
 
-  buildPad();
   buildChoir();
   buildSub();
   buildTexture();
-  buildOrgan();
-  buildViolin();
-  buildHorn();
-  buildDoubleBass();
-  buildPureSine();
+  REGISTER_GROUPS.forEach(band => {
+    buildingBand = band;
+    buildPad();
+    buildOrgan();
+    buildViolin();
+    buildHorn();
+    buildDoubleBass();
+    buildPureSine();
+  });
+  buildingBand = null;
   buildPulseChain();
+}
+
+function createBandGain(instrument){
+  const key = instrument === "synth" ? "padGain" : instrument + "Gain";
+  const paramName = buildingBand.id + instrument[0].toUpperCase() + instrument.slice(1);
+  if (!nodes[key]) nodes[key] = {};
+  const gain = ctx.createGain();
+  gain.gain.value = P(paramName) * BAND_GAIN_SCALE[instrument];
+  nodes[key][buildingBand.id] = gain;
+  return gain;
 }
 
 /* Fixed-rate LFO for vibrato/tremolo — unlike makeLFO, not scaled by Drift,
@@ -948,10 +972,9 @@ function makeLFO(rateHz, depth, target, phaseOffset){
 }
 
 function buildPad(){
-  nodes.padGain = ctx.createGain();
-  nodes.padGain.gain.value = P("pad") * 0.22;
-  nodes.padGain.connect(nodes.bus);
-  nodes.padGain.connect(nodes.revSend);
+  const padGain = createBandGain("synth");
+  padGain.connect(nodes.bus);
+  padGain.connect(nodes.revSend);
 
   for (let i = 0; i < NUM_PAD_VOICES; i++){
     const filter = ctx.createBiquadFilter();
@@ -967,7 +990,7 @@ function buildPad(){
 
     filter.connect(amp);
     amp.connect(pan);
-    pan.connect(nodes.padGain);
+    pan.connect(padGain);
 
     const oscs = [];
     for (let k = 0; k < OSC_PER_VOICE; k++){
@@ -989,17 +1012,16 @@ function buildPad(){
     makeLFO(rand(0.013, 0.055), 120, filter.detune, rand(0, 4));
     makeLFO(rand(0.02, 0.07), 0.35 / NUM_PAD_VOICES, amp.gain, rand(0, 4));
 
-    padVoices.push({ oscs, filter, amp, pan });
+    padVoices.push({ oscs, filter, amp, pan, band: buildingBand.id });
   }
 }
 
 /* Drawbar-style organ: stacked sine harmonics (8', 4', 2 2/3', 2') per voice,
    with a fixed leslie-speed tremolo instead of the slow ambient drift LFOs. */
 function buildOrgan(){
-  nodes.organGain = ctx.createGain();
-  nodes.organGain.gain.value = P("organ") * 0.24;
-  nodes.organGain.connect(nodes.bus);
-  nodes.organGain.connect(nodes.revSend);
+  const organGain = createBandGain("organ");
+  organGain.connect(nodes.bus);
+  organGain.connect(nodes.revSend);
 
   const ratios = [1, 2, 3, 4];
   const gains  = [0.55, 0.30, 0.16, 0.10];
@@ -1010,7 +1032,7 @@ function buildOrgan(){
     const pan = ctx.createStereoPanner();
     pan.pan.value = (i / (NUM_PAD_VOICES - 1)) * 1.2 - 0.6;
     amp.connect(pan);
-    pan.connect(nodes.organGain);
+    pan.connect(organGain);
 
     const oscs = ratios.map((r, ri) => {
       const osc = ctx.createOscillator();
@@ -1027,17 +1049,16 @@ function buildOrgan(){
 
     makeFixedLFO(rand(4.6, 5.4), 0.10, amp.gain, rand(0, 2));
 
-    organVoices.push({ oscs, amp, pan });
+    organVoices.push({ oscs, amp, pan, band: buildingBand.id });
   }
 }
 
 /* Bowed sawtooth through a bandpass tuned to the violin's bright formant
    region, with continuous vibrato for the "swell" character. */
 function buildViolin(){
-  nodes.violinGain = ctx.createGain();
-  nodes.violinGain.gain.value = P("violin") * 0.20;
-  nodes.violinGain.connect(nodes.bus);
-  nodes.violinGain.connect(nodes.revSend);
+  const violinGain = createBandGain("violin");
+  violinGain.connect(nodes.bus);
+  violinGain.connect(nodes.revSend);
 
   for (let i = 0; i < NUM_PAD_VOICES; i++){
     const bp = ctx.createBiquadFilter();
@@ -1052,7 +1073,7 @@ function buildViolin(){
 
     bp.connect(amp);
     amp.connect(pan);
-    pan.connect(nodes.violinGain);
+    pan.connect(violinGain);
 
     const osc = ctx.createOscillator();
     osc.type = "sawtooth";
@@ -1062,17 +1083,16 @@ function buildViolin(){
 
     makeFixedLFO(rand(4.8, 5.6), rand(5, 9), osc.detune, rand(0, 3));
 
-    violinVoices.push({ osc, bp, amp, pan });
+    violinVoices.push({ osc, bp, amp, pan, band: buildingBand.id });
   }
 }
 
 /* Mellow triangle + sine underlay, low-passed for the rounder french horn
    timbre, with slower and shallower vibrato than the violin. */
 function buildHorn(){
-  nodes.hornGain = ctx.createGain();
-  nodes.hornGain.gain.value = P("frenchHorn") * 0.26;
-  nodes.hornGain.connect(nodes.bus);
-  nodes.hornGain.connect(nodes.revSend);
+  const hornGain = createBandGain("frenchHorn");
+  hornGain.connect(nodes.bus);
+  hornGain.connect(nodes.revSend);
 
   for (let i = 0; i < NUM_PAD_VOICES; i++){
     const lp = ctx.createBiquadFilter();
@@ -1087,7 +1107,7 @@ function buildHorn(){
 
     lp.connect(amp);
     amp.connect(pan);
-    pan.connect(nodes.hornGain);
+    pan.connect(hornGain);
 
     const osc = ctx.createOscillator();
     osc.type = "triangle";
@@ -1106,16 +1126,15 @@ function buildHorn(){
 
     makeFixedLFO(rand(4.2, 5.0), rand(2, 4), osc.detune, rand(0, 3));
 
-    hornVoices.push({ osc, sub, lp, amp, pan });
+    hornVoices.push({ osc, sub, lp, amp, pan, band: buildingBand.id });
   }
 }
 
 /* Sustained bowed double bass, an octave below the root — saw + sub sine
    through a dark, narrow low-pass, with a slow bowed vibrato. */
 function buildDoubleBass(){
-  nodes.doubleBassGain = ctx.createGain();
-  nodes.doubleBassGain.gain.value = P("doubleBass") * 0.28;
-  nodes.doubleBassGain.connect(nodes.bus);
+  const doubleBassGain = createBandGain("doubleBass");
+  doubleBassGain.connect(nodes.bus);
 
   for (let i = 0; i < NUM_PAD_VOICES; i++){
     const lp = ctx.createBiquadFilter();
@@ -1130,7 +1149,7 @@ function buildDoubleBass(){
 
     lp.connect(amp);
     amp.connect(pan);
-    pan.connect(nodes.doubleBassGain);
+    pan.connect(doubleBassGain);
 
     const osc = ctx.createOscillator();
     osc.type = "sawtooth";
@@ -1149,17 +1168,16 @@ function buildDoubleBass(){
 
     makeFixedLFO(rand(3.8, 4.6), rand(2, 4), osc.detune, rand(0, 3));
 
-    doubleBassVoices.push({ osc, sub, lp, amp, pan });
+    doubleBassVoices.push({ osc, sub, lp, amp, pan, band: buildingBand.id });
   }
 }
 
 /* Pure sine tone, an octave up — no harmonics, no filtering, just a clean,
    flute-like whistle with a light vibrato so it doesn't sound inert. */
 function buildPureSine(){
-  nodes.sineGain = ctx.createGain();
-  nodes.sineGain.gain.value = P("sine") * 0.22;
-  nodes.sineGain.connect(nodes.bus);
-  nodes.sineGain.connect(nodes.revSend);
+  const sineGain = createBandGain("sine");
+  sineGain.connect(nodes.bus);
+  sineGain.connect(nodes.revSend);
 
   for (let i = 0; i < NUM_PAD_VOICES; i++){
     const amp = ctx.createGain();
@@ -1172,12 +1190,12 @@ function buildPureSine(){
     osc.frequency.value = 440;
     osc.connect(amp);
     amp.connect(pan);
-    pan.connect(nodes.sineGain);
+    pan.connect(sineGain);
     osc.start();
 
     makeFixedLFO(rand(3.5, 4.5), rand(1.5, 3), osc.detune, rand(0, 3));
 
-    sineVoices.push({ osc, amp, pan });
+    sineVoices.push({ osc, amp, pan, band: buildingBand.id });
   }
 }
 
@@ -1493,12 +1511,18 @@ function applyHarmony(glideSecs){
   choirVoices.forEach(v => v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs)));
 }
 
-function applyChord(chord, glideSecs){
+function bandOffset(id){
+  const band = REGISTER_GROUPS.find(item => item.id === id);
+  return band ? band.offset : 0;
+}
+
+function applyChord(chord, glideSecs, bandId){
   currentChord = chord;
   const root = chord.notes[0];
 
   padVoices.forEach((v, i) => {
-    const hz = midiToHz(root);
+    if (bandId && v.band !== bandId) return;
+    const hz = midiToHz(root + bandOffset(v.band));
     v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs));
     glide(v.filter.frequency, hz * rand(4, 9), glideSecs);
   });
@@ -1514,30 +1538,35 @@ function applyChord(chord, glideSecs){
   if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(root - 12), glideSecs);
 
   organVoices.forEach((v, i) => {
-    const hz = midiToHz(root);
+    if (bandId && v.band !== bandId) return;
+    const hz = midiToHz(root + bandOffset(v.band));
     v.oscs.forEach(osc => glide(osc.frequency, hz * osc._ratio, glideSecs));
   });
 
   // violin sits an octave up, in its natural range
   violinVoices.forEach((v, i) => {
-    glide(v.osc.frequency, midiToHz(root + 12), glideSecs);
+    if (bandId && v.band !== bandId) return;
+    glide(v.osc.frequency, midiToHz(root + 12 + bandOffset(v.band)), glideSecs);
   });
 
   hornVoices.forEach((v, i) => {
-    const hz = midiToHz(root);
+    if (bandId && v.band !== bandId) return;
+    const hz = midiToHz(root + bandOffset(v.band));
     glide(v.osc.frequency, hz, glideSecs);
     glide(v.sub.frequency, hz, glideSecs);
   });
 
   doubleBassVoices.forEach((v, i) => {
-    const hz = midiToHz(root - 12);
+    if (bandId && v.band !== bandId) return;
+    const hz = midiToHz(root - 12 + bandOffset(v.band));
     glide(v.osc.frequency, hz, glideSecs);
     glide(v.sub.frequency, hz, glideSecs);
   });
 
   // pure sine sits an octave up, clean and unfiltered
   sineVoices.forEach((v, i) => {
-    glide(v.osc.frequency, midiToHz(root + 12), glideSecs);
+    if (bandId && v.band !== bandId) return;
+    glide(v.osc.frequency, midiToHz(root + 12 + bandOffset(v.band)), glideSecs);
   });
 
   const el = document.getElementById("chordLabel");
@@ -1550,13 +1579,14 @@ function scheduleAhead(){
   if (!running) return;
   const horizon = ctx.currentTime + lookahead();
 
-  // harmony: the loop advances one note every N beats, so it's always locked to the tempo
-  if (ctx.currentTime >= nextChordTime){
-    const holdSecs = 60 / P("bpm") * P("noteHoldBeats");
-    // glide across most of the hold so pitch drifts gradually instead of swooping then sitting still
-    applyChord(nextChord(), Math.min(holdSecs * 0.85, 10));
-    nextChordTime = ctx.currentTime + holdSecs;
-  }
+  // Each register group advances through the shared chord language at its own rate.
+  REGISTER_GROUPS.forEach(band => {
+    if (ctx.currentTime >= nextBandChordTimes[band.id]){
+      const holdSecs = 60 / P("bpm") * P(band.id + "NoteHold");
+      applyChord(nextChord(), Math.min(holdSecs * 0.85, 10), band.id);
+      nextBandChordTimes[band.id] = ctx.currentTime + holdSecs;
+    }
+  });
 
   // chord root: periodically transposes the whole loop to a new key center
   if (ctx.currentTime >= nextRootShiftTime){
@@ -1567,7 +1597,7 @@ function scheduleAhead(){
   // harmony note: a third/fifth above/below the root, on its own beat count
   if (ctx.currentTime >= nextHarmonyTime){
     harmonyInterval = choice(HARMONY_INTERVALS);
-    const harmHoldSecs = 60 / P("bpm") * P("harmonyHoldBeats");
+    const harmHoldSecs = 60 / P("bpm") * HARMONY_HOLD_BEATS;
     applyHarmony(Math.min(harmHoldSecs * 0.85, 10));
     nextHarmonyTime = ctx.currentTime + harmHoldSecs;
   }
@@ -1748,7 +1778,7 @@ async function start(){
 
   running = true;
   startedAt = ctx.currentTime;
-  nextChordTime = 0;
+  REGISTER_GROUPS.forEach(band => { nextBandChordTimes[band.id] = 0; });
   nextBellTime = ctx.currentTime + 2.5;
   nextPulseTime = 0;
   chordLoop = generateChordLoop();
@@ -1760,10 +1790,12 @@ async function start(){
   nextMutTime = 0;
   mutTargets = {};
 
-  applyChord(nextChord(), 0.05);
-  nextChordTime = ctx.currentTime + 60 / P("bpm") * P("noteHoldBeats");
+  REGISTER_GROUPS.forEach(band => {
+    applyChord(nextChord(), 0.05, band.id);
+    nextBandChordTimes[band.id] = ctx.currentTime + 60 / P("bpm") * P(band.id + "NoteHold");
+  });
   nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
-  nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * P("harmonyHoldBeats");
+  nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * HARMONY_HOLD_BEATS;
 
   smooth(nodes.vol.gain, masterTarget(), 0.2);
   smooth(nodes.master.gain, 1, 1.6);
@@ -1806,21 +1838,23 @@ function stop(){
 function applyParam(name){
   if (!ctx) return;
   const v = P(name);
+  const bandMatch = /^(bass|tenor|alto|soprano)(Synth|Organ|Violin|FrenchHorn|DoubleBass|Sine)$/.exec(name);
+  if (bandMatch){
+    const band = bandMatch[1];
+    const instrument = bandMatch[2][0].toLowerCase() + bandMatch[2].slice(1);
+    const nodeKey = instrument === "synth" ? "padGain" : instrument + "Gain";
+    smooth(nodes[nodeKey][band].gain, v * BAND_GAIN_SCALE[instrument], 0.3);
+    return;
+  }
   switch (name){
     case "volume":     smooth(nodes.vol.gain, masterTarget(), 0.15); break;
     case "brightness": smooth(nodes.tone.frequency, brightnessHz(v), 0.2); break;
     case "reverb":     smooth(nodes.revWet.gain, v, 0.25); break;
     case "echo":       smooth(nodes.dlySend.gain, v * 0.8, 0.25); break;
     case "echoTime":   smooth(nodes.delay.delayTime, v, 0.4); break;
-    case "pad":        smooth(nodes.padGain.gain, v * 0.22, 0.2); break;
     case "choir":      smooth(nodes.choirGain.gain, v * CHOIR_GAIN, 0.3); break;
     case "sub":        smooth(nodes.subGain.gain, v * 0.30, 0.3); break;
     case "texture":    smooth(nodes.texGain.gain, v * 0.30, 0.3); break;
-    case "organ":      smooth(nodes.organGain.gain, v * 0.24, 0.3); break;
-    case "violin":     smooth(nodes.violinGain.gain, v * 0.20, 0.3); break;
-    case "frenchHorn": smooth(nodes.hornGain.gain, v * 0.26, 0.3); break;
-    case "doubleBass": smooth(nodes.doubleBassGain.gain, v * 0.28, 0.3); break;
-    case "sine":       smooth(nodes.sineGain.gain, v * 0.22, 0.3); break;
     case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
     case "bass":       smooth(nodes.bassGain.gain, v * 0.30, 0.15); break;
     case "drift":
@@ -1879,6 +1913,16 @@ function refreshLabels(){
 
 function setParams(obj){
   Object.keys(obj).forEach(k => {
+    const legacyInstrument = { pad: "Synth", organ: "Organ", violin: "Violin", frenchHorn: "FrenchHorn", doubleBass: "DoubleBass", sine: "Sine" }[k];
+    if (legacyInstrument){
+      REGISTER_GROUPS.forEach(band => {
+        const name = band.id + legacyInstrument;
+        PARAMS[name].value = obj[k];
+        syncSlider(name);
+        applyParam(name);
+      });
+      return;
+    }
     const s = PARAMS[k];
     if (!s) return;
     s.value = obj[k];
@@ -1935,7 +1979,7 @@ function randomizeAll(){
   if (ctx){
     nextMutTime = ctx.currentTime + mutInterval(P("randomInterval"));
     nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
-    nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * P("harmonyHoldBeats");
+    nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * HARMONY_HOLD_BEATS;
   }
 
   const b = document.getElementById("randomBtn");

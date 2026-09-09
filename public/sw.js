@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v27";  // v27: Random shift level no longer touched by Randomize or Evolution
+const CACHE_VERSION = "endless-v28";  // v28: split harmony instruments into four register groups
 
 const PRECACHE = [
   "./",
