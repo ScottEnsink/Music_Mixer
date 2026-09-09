@@ -279,9 +279,6 @@
 
     <section class="panel">
       <h2>Layers</h2>
-      <div class="row" data-param="pad">
-        <div class="lab"><b>Pad</b><i></i></div><input type="range" min="0" max="1" step="0.001">
-      </div>
       <div class="row" data-param="choir">
         <div class="lab"><b>Choir</b><i></i></div><input type="range" min="0" max="1" step="0.001">
         <div class="hint">Wordless formant voices &mdash; vowel sounds, never words.</div>
@@ -292,6 +289,30 @@
       <div class="row" data-param="texture">
         <div class="lab"><b>Texture</b><i></i></div><input type="range" min="0" max="1" step="0.001">
         <div class="hint">Filtered noise: air, wind, distant static.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Instruments</h2>
+      <div class="row" data-param="pad">
+        <div class="lab"><b>Synth</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">The main detuned-saw pad &mdash; the classic synthesizer voice.</div>
+      </div>
+      <div class="row" data-param="organ">
+        <div class="lab"><b>Organ</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Drawbar harmonics with a touch of leslie tremolo.</div>
+      </div>
+      <div class="row" data-param="violin">
+        <div class="lab"><b>Violin</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Bowed sawtooth tone with vibrato, sitting an octave up.</div>
+      </div>
+      <div class="row" data-param="frenchHorn">
+        <div class="lab"><b>French horn</b><i></i></div>
+        <input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Warm, mellow brass &mdash; low-pass filtered triangle and sine.</div>
       </div>
     </section>
 
@@ -358,19 +379,24 @@
 
     <section class="panel">
       <h2>Evolution</h2>
-      <div class="row" data-param="randomness">
-        <div class="lab"><b>Randomness</b><i></i></div>
+      <div class="row" data-param="randomInterval">
+        <div class="lab"><b>Random interval</b><i></i></div>
         <input type="range" min="0" max="1" step="0.001">
         <div class="hint">
-          How much the whole patch rewrites itself as it plays. At zero it stays exactly where
+          How often the whole patch rewrites itself as it plays. At zero it stays exactly where
           you left it. Turn it up and the sliders start moving on their own &mdash; slowly at
           first, then restlessly, eventually wandering into new keys and scales.
         </div>
       </div>
+      <div class="row" data-param="shiftLevel">
+        <div class="lab"><b>Random shift level</b><i></i></div>
+        <input type="range" min="0.10" max="0.50" step="0.001">
+        <div class="hint">How large each shift is when the Random interval fires.</div>
+      </div>
       <div class="row" style="margin-bottom:18px">
         <div class="lab"><b>Next shift</b><i id="mutLabel">&mdash;</i></div>
         <div class="hint" style="margin-top:0">
-          Master volume is never touched, by either Randomness or Randomize.
+          Master volume is never touched, by either the Random interval or Randomize.
         </div>
       </div>
     </section>
@@ -407,6 +433,10 @@ const PARAMS = {
   choir:      { value: 0.35, fmt: pct },
   sub:        { value: 0.5,  fmt: pct },
   texture:    { value: 0.28, fmt: pct },
+  // instruments
+  organ:      { value: 0,    fmt: pct },
+  violin:     { value: 0,    fmt: pct },
+  frenchHorn: { value: 0,    fmt: pct },
   // bells
   bells:      { value: 0.5,  fmt: pct },
   density:    { value: 0.35, fmt: v => (bellsPerMin(v)).toFixed(1) + " /min" },
@@ -424,7 +454,8 @@ const PARAMS = {
   bass:       { value: 0.55, fmt: pct },
   bassTone:   { value: 0.45, fmt: pct },
   // evolution
-  randomness: { value: 0,    fmt: v => v <= 0.005 ? "locked" : "every ~" + Math.round(mutInterval(v)) + " s" },
+  randomInterval: { value: 0,    fmt: v => v <= 0.005 ? "locked" : "every ~" + Math.round(mutInterval(v)) + " s" },
+  shiftLevel:     { value: 0.25, fmt: pct },
 };
 
 const P = name => PARAMS[name].value;
@@ -435,7 +466,7 @@ function hzLabel(hz){ return hz >= 1000 ? (hz/1000).toFixed(1) + " kHz" : Math.r
 function brightnessHz(v){ return 160 * Math.pow(14000 / 160, v); }
 function bellsPerMin(v){ return 0.6 + v * v * 29; }
 function bellDecay(v){ return 1.2 + v * 10; }
-// Randomness 0.01 -> a shift every ~2 min; 1.0 -> every ~8 s.
+// Random Interval 0.01 -> a shift every ~2 min; 1.0 -> every ~8 s.
 function mutInterval(v){ return 130 * Math.pow(0.062, v); }
 
 /* ============================================================
@@ -457,6 +488,9 @@ const RANDOM_BOUNDS = {
   choir:      [0.05, 0.85],
   sub:        [0.20, 0.80],
   texture:    [0.05, 0.60],
+  organ:      [0.00, 0.70],
+  violin:     [0.00, 0.65],
+  frenchHorn: [0.00, 0.65],
   bells:      [0.20, 0.85],
   density:    [0.05, 0.75],
   timbre:     [0.05, 0.90],
@@ -473,8 +507,9 @@ const RANDOM_BOUNDS = {
 
 const INTEGER_PARAMS = { chordRootSecs: 1, register: 1, bpm: 1 };
 
-// Eased continuously by the Randomness slider.
+// Eased continuously by the Random Interval slider.
 const MUT_CONTINUOUS = ["brightness","width","drift","pad","choir","sub","texture",
+                        "organ","violin","frenchHorn",
                         "bells","density","timbre","decay","reverb","echo","echoTime",
                         "chordRootSecs","pulseLevel","pulseTone","bass","bassTone"];
 
@@ -616,6 +651,9 @@ let startedAt = 0;
 const nodes = {};       // shared graph nodes
 const padVoices = [];
 const choirVoices = [];
+const organVoices = [];
+const violinVoices = [];
+const hornVoices = [];
 const driftLFOs = [];   // { gain, depth } — depth scaled by the Drift slider
 
 let currentChord = null;
@@ -811,7 +849,24 @@ function buildGraph(){
   buildChoir();
   buildSub();
   buildTexture();
+  buildOrgan();
+  buildViolin();
+  buildHorn();
   buildPulseChain();
+}
+
+/* Fixed-rate LFO for vibrato/tremolo — unlike makeLFO, not scaled by Drift,
+   since these are the instrument's own character rather than ambient motion. */
+function makeFixedLFO(rateHz, depth, target, phaseOffset){
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = rateHz;
+  const g = ctx.createGain();
+  g.gain.value = depth;
+  osc.connect(g);
+  g.connect(target);
+  osc.start(ctx.currentTime + (phaseOffset || 0));
+  return g;
 }
 
 /* Slow LFO helper. Returns the depth gain so Drift can scale it. */
@@ -872,6 +927,123 @@ function buildPad(){
     makeLFO(rand(0.02, 0.07), 0.45 / NUM_PAD_VOICES, amp.gain, rand(0, 4));
 
     padVoices.push({ oscs, filter, amp, pan });
+  }
+}
+
+/* Drawbar-style organ: stacked sine harmonics (8', 4', 2 2/3', 2') per voice,
+   with a fixed leslie-speed tremolo instead of the slow ambient drift LFOs. */
+function buildOrgan(){
+  nodes.organGain = ctx.createGain();
+  nodes.organGain.gain.value = P("organ") * 0.24;
+  nodes.organGain.connect(nodes.bus);
+  nodes.organGain.connect(nodes.revSend);
+
+  const ratios = [1, 2, 3, 4];
+  const gains  = [0.55, 0.30, 0.16, 0.10];
+
+  for (let i = 0; i < NUM_PAD_VOICES; i++){
+    const amp = ctx.createGain();
+    amp.gain.value = 1 / NUM_PAD_VOICES;
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = (i / (NUM_PAD_VOICES - 1)) * 1.2 - 0.6;
+    amp.connect(pan);
+    pan.connect(nodes.organGain);
+
+    const oscs = ratios.map((r, ri) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = 110 * r;
+      osc._ratio = r;
+      const og = ctx.createGain();
+      og.gain.value = gains[ri];
+      osc.connect(og);
+      og.connect(amp);
+      osc.start();
+      return osc;
+    });
+
+    makeFixedLFO(rand(4.6, 5.4), 0.10, amp.gain, rand(0, 2));
+
+    organVoices.push({ oscs, amp, pan });
+  }
+}
+
+/* Bowed sawtooth through a bandpass tuned to the violin's bright formant
+   region, with continuous vibrato for the "swell" character. */
+function buildViolin(){
+  nodes.violinGain = ctx.createGain();
+  nodes.violinGain.gain.value = P("violin") * 0.20;
+  nodes.violinGain.connect(nodes.bus);
+  nodes.violinGain.connect(nodes.revSend);
+
+  for (let i = 0; i < NUM_PAD_VOICES; i++){
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = rand(1500, 2600);
+    bp.Q.value = 1.8;
+
+    const amp = ctx.createGain();
+    amp.gain.value = 1 / NUM_PAD_VOICES;
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = (i / (NUM_PAD_VOICES - 1)) * 1.3 - 0.65;
+
+    bp.connect(amp);
+    amp.connect(pan);
+    pan.connect(nodes.violinGain);
+
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = 440;
+    osc.connect(bp);
+    osc.start();
+
+    makeFixedLFO(rand(4.8, 5.6), rand(5, 9), osc.detune, rand(0, 3));
+
+    violinVoices.push({ osc, bp, amp, pan });
+  }
+}
+
+/* Mellow triangle + sine underlay, low-passed for the rounder french horn
+   timbre, with slower and shallower vibrato than the violin. */
+function buildHorn(){
+  nodes.hornGain = ctx.createGain();
+  nodes.hornGain.gain.value = P("frenchHorn") * 0.26;
+  nodes.hornGain.connect(nodes.bus);
+  nodes.hornGain.connect(nodes.revSend);
+
+  for (let i = 0; i < NUM_PAD_VOICES; i++){
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = rand(900, 1500);
+    lp.Q.value = 0.8;
+
+    const amp = ctx.createGain();
+    amp.gain.value = 1 / NUM_PAD_VOICES;
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = (i / (NUM_PAD_VOICES - 1)) * 1.0 - 0.5;
+
+    lp.connect(amp);
+    amp.connect(pan);
+    pan.connect(nodes.hornGain);
+
+    const osc = ctx.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = 220;
+    osc.connect(lp);
+    osc.start();
+
+    const sub = ctx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.value = 220;
+    const subG = ctx.createGain();
+    subG.gain.value = 0.4;
+    sub.connect(subG);
+    subG.connect(lp);
+    sub.start();
+
+    makeFixedLFO(rand(4.2, 5.0), rand(2, 4), osc.detune, rand(0, 3));
+
+    hornVoices.push({ osc, sub, lp, amp, pan });
   }
 }
 
@@ -1197,6 +1369,22 @@ function applyChord(chord, glideSecs){
 
   if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(notes[0] - 12), glideSecs);
 
+  organVoices.forEach((v, i) => {
+    const hz = midiToHz(notes[i % notes.length]);
+    v.oscs.forEach(osc => glide(osc.frequency, hz * osc._ratio, glideSecs));
+  });
+
+  // violin sits an octave up, in its natural range
+  violinVoices.forEach((v, i) => {
+    glide(v.osc.frequency, midiToHz(notes[i % notes.length] + 12), glideSecs);
+  });
+
+  hornVoices.forEach((v, i) => {
+    const hz = midiToHz(notes[i % notes.length]);
+    glide(v.osc.frequency, hz, glideSecs);
+    glide(v.sub.frequency, hz, glideSecs);
+  });
+
   const el = document.getElementById("chordLabel");
   if (el) el.textContent = chordLabel(chord);
 }
@@ -1274,7 +1462,7 @@ function scheduleAhead(){
     pulseStep = 0;
   }
 
-  // autonomous drift driven by the Randomness slider
+  // autonomous drift driven by the Random interval slider
   const now = ctx.currentTime;
   const dt = lastTick ? Math.min(3, now - lastTick) : TICK_MS / 1000;
   lastTick = now;
@@ -1381,7 +1569,9 @@ function onVisibilityChange(){
 function registerServiceWorker(){
   // file:// has no service worker support, so this is a no-op when opened directly.
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.register("sw.js")
+    .then(reg => reg.update().catch(() => {}))   // check for a newer sw.js right away, not just on next launch
+    .catch(() => {});
 }
 
 /* ---------- transport ---------- */
@@ -1458,6 +1648,9 @@ function applyParam(name){
     case "choir":      smooth(nodes.choirGain.gain, v * CHOIR_GAIN, 0.3); break;
     case "sub":        smooth(nodes.subGain.gain, v * 0.30, 0.3); break;
     case "texture":    smooth(nodes.texGain.gain, v * 0.30, 0.3); break;
+    case "organ":      smooth(nodes.organGain.gain, v * 0.24, 0.3); break;
+    case "violin":     smooth(nodes.violinGain.gain, v * 0.20, 0.3); break;
+    case "frenchHorn": smooth(nodes.hornGain.gain, v * 0.26, 0.3); break;
     case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
     case "bass":       smooth(nodes.bassGain.gain, v * 0.30, 0.15); break;
     case "drift":
@@ -1470,7 +1663,7 @@ function applyParam(name){
     case "register":
       if (currentChord) applyChord(nextChord(), 3.5);
       break;
-    case "randomness":
+    case "randomInterval":
       // Turning this up must not leave us waiting out the old, slower interval.
       if (v > 0.005){
         const iv = mutInterval(v);
@@ -1478,7 +1671,7 @@ function applyParam(name){
         if (nextMutTime === 0 || nextMutTime - t > iv) nextMutTime = t + iv * rand(0.25, 0.8);
       }
       break;
-    // chordRootSecs, density, timbre, decay, bells, bpm, pulseTone are read at schedule time
+    // chordRootSecs, density, timbre, decay, bells, bpm, pulseTone, shiftLevel are read at schedule time
   }
 }
 
@@ -1575,7 +1768,7 @@ function randomizeAll(){
 
   mutTargets = {};                                // abandon any in-flight drift
   if (ctx){
-    nextMutTime = ctx.currentTime + mutInterval(P("randomness"));
+    nextMutTime = ctx.currentTime + mutInterval(P("randomInterval"));
     nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
   }
 
@@ -1583,43 +1776,46 @@ function randomizeAll(){
   if (b){ b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin"); }
 }
 
-/* ---------- Randomness: autonomous drift over time ---------- */
+/* ---------- Random interval: autonomous drift over time ---------- */
 
 let mutTargets = {};
 let nextMutTime = 0;
 
 /* Choose a handful of parameters and set new targets near their current values.
-   Bounded deltas, so the patch wanders rather than teleporting. */
-function pickMutations(r){
-  const count = 1 + Math.round(r * 3);
+   Bounded deltas, so the patch wanders rather than teleporting. `shiftLevel` is
+   10%-50% from the slider; doubled here so it spans the same 0-1 strength range
+   the step/probability formulas were tuned against. */
+function pickMutations(shiftLevel){
+  const level = clamp(shiftLevel * 2, 0, 1);
+  const count = 1 + Math.round(level * 3);
   const pool = MUT_CONTINUOUS.slice();
   for (let i = 0; i < count && pool.length; i++){
     const name = pool.splice((Math.random() * pool.length) | 0, 1)[0];
     const b = RANDOM_BOUNDS[name];
     if (!b) continue;
     const span = b[1] - b[0];
-    const step = (0.10 + r * 0.55) * span * rand(-1, 1);
+    const step = (0.10 + level * 0.55) * span * rand(-1, 1);
     mutTargets[name] = clamp(PARAMS[name].value + step, b[0], b[1]);
   }
 
-  // Bigger, rarer structural moves — scaled hard by Randomness so a low
+  // Bigger, rarer structural moves — scaled hard by the shift level so a low
   // setting never yanks you into another key.
-  if (Math.random() < r * 0.40){
+  if (Math.random() < level * 0.40){
     const b = RANDOM_BOUNDS.register;
     PARAMS.register.value = clamp(PARAMS.register.value + choice([-5,-3,-2,2,3,5]), b[0], b[1]);
     syncSlider("register");
     if (ctx && currentChord) applyChord(nextChord(), 4);
   }
-  if (Math.random() < r * 0.22){
+  if (Math.random() < level * 0.22){
     const keys = Object.keys(SCALES);
     scaleName = keys[(Math.random() * keys.length) | 0];
     setSelects();
   }
-  if (Math.random() < r * 0.16){
+  if (Math.random() < level * 0.16){
     rootPc = (rootPc + choice([5, 7, 2, 10])) % 12;
     setSelects();
   }
-  if (Math.random() < r * 0.30){
+  if (Math.random() < level * 0.30){
     const b = RANDOM_BOUNDS.bpm;
     PARAMS.bpm.value = Math.round(clamp(PARAMS.bpm.value + rand(-14, 14), b[0], b[1]));
     syncSlider("bpm");
@@ -1627,7 +1823,7 @@ function pickMutations(r){
 }
 
 function mutateTick(dt){
-  const r = P("randomness");
+  const r = P("randomInterval");
   const lbl = document.getElementById("mutLabel");
 
   if (r <= 0.005){
@@ -1639,7 +1835,7 @@ function mutateTick(dt){
   const interval = mutInterval(r);
   if (nextMutTime === 0 || ctx.currentTime >= nextMutTime){
     nextMutTime = ctx.currentTime + interval * rand(0.6, 1.45);
-    pickMutations(r);
+    pickMutations(P("shiftLevel"));
   }
   if (lbl) lbl.textContent = Math.max(0, Math.round(nextMutTime - ctx.currentTime)) + " s";
 

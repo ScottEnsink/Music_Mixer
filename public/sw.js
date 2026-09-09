@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v3";   // v3: choir audibility fix (added body under the formants)
+const CACHE_VERSION = "endless-v5";   // v5: Randomness split into Random interval + Random shift level
 
 const PRECACHE = [
   "./",
