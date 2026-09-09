@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v28";  // v28: split harmony instruments into four register groups
+const CACHE_VERSION = "endless-v30";  // v30: move Texture into Space and remove Layers
 
 const PRECACHE = [
   "./",

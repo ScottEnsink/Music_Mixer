@@ -208,7 +208,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
-    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T19:36:39-04:00">Sep 9, 2026, 7:36 PM</time></div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T19:46:37-04:00">Sep 9, 2026, 7:46 PM</time></div>
   </header>
 
   <div class="transport">
@@ -350,21 +350,6 @@
     </section>
 
     <section class="panel">
-      <h2>Layers</h2>
-      <div class="row" data-param="choir">
-        <div class="lab"><b>Choir</b><i></i></div><input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Wordless formant voices &mdash; sings the Harmony note, a third/fifth away from the root.</div>
-      </div>
-      <div class="row" data-param="sub">
-        <div class="lab"><b>Sub</b><i></i></div><input type="range" min="0" max="1" step="0.001">
-      </div>
-      <div class="row" data-param="texture">
-        <div class="lab"><b>Texture</b><i></i></div><input type="range" min="0" max="1" step="0.001">
-        <div class="hint">Filtered noise: air, wind, distant static.</div>
-      </div>
-    </section>
-
-    <section class="panel">
       <h2>Bells</h2>
       <div class="row" data-param="bells">
         <div class="lab"><b>Level</b><i></i></div><input type="range" min="0" max="1" step="0.001">
@@ -396,6 +381,10 @@
       <div class="row" data-param="echoTime">
         <div class="lab"><b>Echo time</b><i></i></div>
         <input type="range" min="0.15" max="1.6" step="0.005">
+      </div>
+      <div class="row" data-param="texture">
+        <div class="lab"><b>Texture</b><i></i></div><input type="range" min="0" max="1" step="0.001">
+        <div class="hint">Filtered noise: air, wind, distant static.</div>
       </div>
     </section>
 
@@ -464,8 +453,6 @@ const PARAMS = {
   width:      { value: 0.45, fmt: pct },
   drift:      { value: 0.5,  fmt: pct },
   // layers
-  choir:      { value: 0.35, fmt: pct },
-  sub:        { value: 0.5,  fmt: pct },
   texture:    { value: 0.28, fmt: pct },
   bassSynth:  { value: 0.75, fmt: pct }, bassOrgan: { value: 0, fmt: pct }, bassViolin: { value: 0, fmt: pct }, bassFrenchHorn: { value: 0, fmt: pct }, bassDoubleBass: { value: 0.5, fmt: pct }, bassSine: { value: 0, fmt: pct },
   tenorSynth: { value: 0.55, fmt: pct }, tenorOrgan: { value: 0, fmt: pct }, tenorViolin: { value: 0, fmt: pct }, tenorFrenchHorn: { value: 0, fmt: pct }, tenorDoubleBass: { value: 0, fmt: pct }, tenorSine: { value: 0, fmt: pct },
@@ -523,8 +510,6 @@ const RANDOM_BOUNDS = {
   brightness: [0.28, 0.86],
   width:      [0.15, 0.90],
   drift:      [0.20, 0.90],
-  choir:      [0.05, 0.85],
-  sub:        [0.20, 0.80],
   texture:    [0.05, 0.60],
   bassSynth: [0.00, 1.00], bassOrgan: [0.00, 0.70], bassViolin: [0.00, 0.65], bassFrenchHorn: [0.00, 0.65], bassDoubleBass: [0.00, 0.65], bassSine: [0.00, 0.70],
   tenorSynth: [0.00, 1.00], tenorOrgan: [0.00, 0.70], tenorViolin: [0.00, 0.65], tenorFrenchHorn: [0.00, 0.65], tenorDoubleBass: [0.00, 0.65], tenorSine: [0.00, 0.70],
@@ -550,7 +535,7 @@ const INTEGER_PARAMS = { chordRootSecs: 1, register: 1, bpm: 1,
 
 // Eased continuously by the Random Interval slider. `shiftLevel` is deliberately
 // excluded — letting it mutate itself made the slider's felt intensity unreliable.
-const MUT_CONTINUOUS = ["brightness","width","drift","choir","sub","texture",
+const MUT_CONTINUOUS = ["brightness","width","drift","texture",
                         "bassSynth","bassOrgan","bassViolin","bassFrenchHorn","bassDoubleBass","bassSine",
                         "tenorSynth","tenorOrgan","tenorViolin","tenorFrenchHorn","tenorDoubleBass","tenorSine",
                         "altoSynth","altoOrgan","altoViolin","altoFrenchHorn","altoDoubleBass","altoSine",
@@ -629,10 +614,6 @@ function shiftChordRoot(){
 }
 
 // Thirds and fifths, up or down — always consonant with the current root, in-scale.
-const HARMONY_INTERVALS = [2, 4, -2, -4];
-const HARMONY_HOLD_BEATS = 6;
-let harmonyInterval = HARMONY_INTERVALS[0];   // current scale-step offset from the root
-
 function midiToHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 /* ---------- bass patterns ----------
@@ -694,13 +675,6 @@ function chordLabel(chord){
 
 const NUM_PAD_VOICES = 4;
 const OSC_PER_VOICE  = 3;
-const NUM_CHOIR      = 2;
-
-/* Choir bus level. Kept as a constant because it is needed both when the graph
-   is built and in applyParam(), and the two silently drifting apart is exactly
-   how a slider ends up appearing to do nothing. */
-const CHOIR_GAIN = 0.42;
-
 // Vowel formant triples (Hz) — morphed between for slow movement.
 const VOWELS = [
   [ 730, 1090, 2440 ], // "ah"
@@ -715,7 +689,6 @@ let startedAt = 0;
 
 const nodes = {};       // shared graph nodes
 const padVoices = [];
-const choirVoices = [];
 const organVoices = [];
 const violinVoices = [];
 const hornVoices = [];
@@ -727,7 +700,6 @@ let buildingBand = null;
 let currentChord = null;
 const nextBandChordTimes = {};
 let nextRootShiftTime = 0;
-let nextHarmonyTime = 0;
 let nextBellTime = 0;
 let nextPulseTime = 0;
 let pulseStep = 0;          // position on the shared eighth-note grid
@@ -914,8 +886,6 @@ function buildGraph(){
 
   nodes.noiseBuffer = makeNoiseBuffer(4);
 
-  buildChoir();
-  buildSub();
   buildTexture();
   REGISTER_GROUPS.forEach(band => {
     buildingBand = band;
@@ -1199,100 +1169,6 @@ function buildPureSine(){
   }
 }
 
-function buildChoir(){
-  nodes.choirGain = ctx.createGain();
-  nodes.choirGain.gain.value = P("choir") * CHOIR_GAIN;
-  nodes.choirGain.connect(nodes.bus);
-  nodes.choirGain.connect(nodes.revSend);
-
-  for (let i = 0; i < NUM_CHOIR; i++){
-    const src = ctx.createGain();          // sums this voice's oscillators
-    const out = ctx.createGain();
-    out.gain.value = 1 / NUM_CHOIR;
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = i === 0 ? -0.4 : 0.4;
-
-    // three parallel band-passes = vowel formants (never a word, just a vowel)
-    const formants = VOWELS[0].map((f, fi) => {
-      const bp = ctx.createBiquadFilter();
-      bp.type = "bandpass";
-      bp.frequency.value = f;
-      // Modest Q. Pinching these tighter sounds nasal and throws away so much
-      // energy that the whole layer disappears under the pad.
-      bp.Q.value = 4.5 + fi * 1.5;
-      const g = ctx.createGain();
-      g.gain.value = [1, 0.6, 0.35][fi];
-      src.connect(bp);
-      bp.connect(g);
-      g.connect(out);
-      return bp;
-    });
-
-    /* Body. The formant bank starts at 730 Hz but these voices sing at roughly
-       130-250 Hz, so the bank discards the fundamental completely — which left
-       the choir a thin, nasal whisper you couldn't pick out of the mix. A real
-       voice has weight under its formants; this is that weight. */
-    const body = ctx.createBiquadFilter();
-    body.type = "lowpass";
-    body.frequency.value = 520;
-    body.Q.value = 0.7;
-    const bodyG = ctx.createGain();
-    bodyG.gain.value = 0.55;
-    src.connect(body);
-    body.connect(bodyG);
-    bodyG.connect(out);
-
-    out.connect(pan);
-    pan.connect(nodes.choirGain);
-
-    const oscs = [];
-    for (let k = 0; k < 2; k++){
-      const osc = ctx.createOscillator();
-      osc.type = "sawtooth";
-      osc.frequency.value = 220;
-      osc._spread = k === 0 ? -1 : 1;
-      osc.detune.value = osc._spread * (6 + P("width") * 14);
-      const og = ctx.createGain();
-      og.gain.value = 0.5;
-      osc.connect(og);
-      og.connect(src);
-      osc.start();
-      oscs.push(osc);
-      // gentle vibrato keeps it from sounding like a synth pad
-      const vib = ctx.createOscillator();
-      vib.type = "sine";
-      vib.frequency.value = rand(3.5, 5.2);
-      const vg = ctx.createGain();
-      vg.gain.value = rand(3, 7);
-      vib.connect(vg);
-      vg.connect(osc.detune);
-      vib.start();
-    }
-
-    makeLFO(rand(0.015, 0.05), 0.5 / NUM_CHOIR, out.gain, rand(0, 5));
-
-    choirVoices.push({ oscs, formants, out, pan, vowel: 0 });
-  }
-}
-
-function buildSub(){
-  nodes.subGain = ctx.createGain();
-  nodes.subGain.gain.value = P("sub") * 0.30;
-  nodes.subGain.connect(nodes.bus);
-
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.value = 55;
-  const shaper = ctx.createGain();
-  shaper.gain.value = 0.8;
-  osc.connect(shaper);
-  shaper.connect(nodes.subGain);
-  osc.start();
-
-  makeLFO(rand(0.01, 0.03), 0.35, shaper.gain, 0);
-  nodes.subOsc = osc;
-}
-
 function buildTexture(){
   nodes.texGain = ctx.createGain();
   nodes.texGain.gain.value = P("texture") * 0.30;
@@ -1499,18 +1375,6 @@ function playPulse(time){
 
 /* ---------- harmony application ---------- */
 
-/* The Harmony note — a third or fifth above/below the current root, still in
-   the same scale — is sung by the choir. It changes on its own beat count
-   (Harmony hold), independent of the root, so the two drift in and out of
-   sync rather than always moving together. */
-function applyHarmony(glideSecs){
-  if (!currentChord) return;
-  const base = 36 + Math.round(P("register"));
-  const midi = degreeToMidi(currentChord.degree + harmonyInterval, base) + 12;
-  const hz = midiToHz(midi);
-  choirVoices.forEach(v => v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs)));
-}
-
 function bandOffset(id){
   const band = REGISTER_GROUPS.find(item => item.id === id);
   return band ? band.offset : 0;
@@ -1526,16 +1390,6 @@ function applyChord(chord, glideSecs, bandId){
     v.oscs.forEach(osc => glide(osc.frequency, hz, glideSecs));
     glide(v.filter.frequency, hz * rand(4, 9), glideSecs);
   });
-
-  // choir sings the Harmony note (see applyHarmony) — only the vowel morphs here
-  choirVoices.forEach((v, i) => {
-    const nv = (v.vowel + 1 + ((Math.random() * 2) | 0)) % VOWELS.length;
-    v.vowel = nv;
-    v.formants.forEach((bp, fi) => glide(bp.frequency, VOWELS[nv][fi], glideSecs));
-  });
-  applyHarmony(glideSecs);
-
-  if (nodes.subOsc) glide(nodes.subOsc.frequency, midiToHz(root - 12), glideSecs);
 
   organVoices.forEach((v, i) => {
     if (bandId && v.band !== bandId) return;
@@ -1592,14 +1446,6 @@ function scheduleAhead(){
   if (ctx.currentTime >= nextRootShiftTime){
     shiftChordRoot();
     nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
-  }
-
-  // harmony note: a third/fifth above/below the root, on its own beat count
-  if (ctx.currentTime >= nextHarmonyTime){
-    harmonyInterval = choice(HARMONY_INTERVALS);
-    const harmHoldSecs = 60 / P("bpm") * HARMONY_HOLD_BEATS;
-    applyHarmony(Math.min(harmHoldSecs * 0.85, 10));
-    nextHarmonyTime = ctx.currentTime + harmHoldSecs;
   }
 
   // bells
@@ -1784,7 +1630,6 @@ async function start(){
   chordLoop = generateChordLoop();
   loopIndex = 0;
   rootDegree = 0;
-  harmonyInterval = choice(HARMONY_INTERVALS);
   pulseStep = 0;
   lastTick = 0;
   nextMutTime = 0;
@@ -1795,8 +1640,6 @@ async function start(){
     nextBandChordTimes[band.id] = ctx.currentTime + 60 / P("bpm") * P(band.id + "NoteHold");
   });
   nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
-  nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * HARMONY_HOLD_BEATS;
-
   smooth(nodes.vol.gain, masterTarget(), 0.2);
   smooth(nodes.master.gain, 1, 1.6);
 
@@ -1852,8 +1695,6 @@ function applyParam(name){
     case "reverb":     smooth(nodes.revWet.gain, v, 0.25); break;
     case "echo":       smooth(nodes.dlySend.gain, v * 0.8, 0.25); break;
     case "echoTime":   smooth(nodes.delay.delayTime, v, 0.4); break;
-    case "choir":      smooth(nodes.choirGain.gain, v * CHOIR_GAIN, 0.3); break;
-    case "sub":        smooth(nodes.subGain.gain, v * 0.30, 0.3); break;
     case "texture":    smooth(nodes.texGain.gain, v * 0.30, 0.3); break;
     case "pulseLevel": smooth(nodes.pulseGain.gain, v * 0.7, 0.15); break;
     case "bass":       smooth(nodes.bassGain.gain, v * 0.30, 0.15); break;
@@ -1862,7 +1703,6 @@ function applyParam(name){
       break;
     case "width":
       padVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * v * 16, 0.3)));
-      choirVoices.forEach(vo => vo.oscs.forEach(o => smooth(o.detune, o._spread * (6 + v * 14), 0.3)));
       break;
     case "register":
       if (currentChord) applyChord(nextChord(), 3.5);
@@ -1964,7 +1804,6 @@ function randomizeAll(){
   chordLoop = generateChordLoop();
   loopIndex = 0;
   rootDegree = choice([-2, -1, 0, 0, 1, 2]);
-  harmonyInterval = choice(HARMONY_INTERVALS);
   const bp = document.getElementById("bassPattern");
   if (bp){
     bassPatternName = choice(Object.keys(BASS_PATTERNS));
@@ -1979,7 +1818,6 @@ function randomizeAll(){
   if (ctx){
     nextMutTime = ctx.currentTime + mutInterval(P("randomInterval"));
     nextRootShiftTime = ctx.currentTime + P("chordRootSecs");
-    nextHarmonyTime = ctx.currentTime + 60 / P("bpm") * HARMONY_HOLD_BEATS;
   }
 
   const b = document.getElementById("randomBtn");
@@ -2068,19 +1906,19 @@ function mutateTick(dt){
 }
 
 const PRESETS = {
-  "Deep space": { pad:.8, choir:.22, sub:.62, texture:.4, bells:.45, density:.2, timbre:.25,
+  "Deep space": { texture:.4, bells:.45, density:.2, timbre:.25,
                   decay:.85, reverb:.8, echo:.42, echoTime:.9, brightness:.4, width:.55,
                   drift:.6, chordRootSecs:48, register:-5 },
-  "Glacier":    { pad:.65, choir:.15, sub:.35, texture:.6, bells:.6, density:.42, timbre:.75,
+  "Glacier":    { texture:.6, bells:.6, density:.42, timbre:.75,
                   decay:.7, reverb:.7, echo:.35, echoTime:.45, brightness:.72, width:.4,
                   drift:.45, chordRootSecs:30, register:4 },
-  "Cathedral":  { pad:.6, choir:.72, sub:.4, texture:.14, bells:.3, density:.14, timbre:.2,
+  "Cathedral":  { texture:.14, bells:.3, density:.14, timbre:.2,
                   decay:.9, reverb:.92, echo:.2, echoTime:1.2, brightness:.5, width:.3,
                   drift:.3, chordRootSecs:40, register:-2 },
-  "Warm dusk":  { pad:.85, choir:.3, sub:.55, texture:.3, bells:.5, density:.5, timbre:.3,
+  "Warm dusk":  { texture:.3, bells:.5, density:.5, timbre:.3,
                   decay:.5, reverb:.5, echo:.5, echoTime:.6, brightness:.44, width:.6,
                   drift:.55, chordRootSecs:22, register:0 },
-  "Signal":     { pad:.45, choir:.1, sub:.7, texture:.5, bells:.55, density:.7, timbre:.6,
+  "Signal":     { texture:.5, bells:.55, density:.7, timbre:.6,
                   decay:.35, reverb:.45, echo:.6, echoTime:.35, brightness:.62, width:.45,
                   drift:.7, chordRootSecs:16, register:0, pulseLevel:.5,
                   bass:.62, bassTone:.6 },
@@ -2218,9 +2056,8 @@ document.addEventListener("DOMContentLoaded", () => {
   window.__endless = { start, stop, setParams, randomizeAll, PARAMS, nodes, RANDOM_BOUNDS,
                        get ctx(){ return ctx; }, get running(){ return running; },
                        get mutTargets(){ return mutTargets; },
-                       get harmony(){ return { rootPc, scaleName, rootDegree, chordLoop, bassPatternName, harmonyInterval }; },
+                       get harmony(){ return { rootPc, scaleName, rootDegree, chordLoop, bassPatternName }; },
                        get chord(){ return currentChord; },
-                       get choirVoices(){ return choirVoices; },
                        nextChordPreview: nextChord, TRACE };
 });
 </script>
