@@ -9,4 +9,5 @@ DONE 1- move the Evolution control to the top
 7- add piano chords
 8- add wind chimes
 9- add a Hold option for each slider
+10- allow separate instrument choices for harmony and melody notes
 

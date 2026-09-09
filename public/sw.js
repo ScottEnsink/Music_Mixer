@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v24";  // v24: kick now follows the Bass pattern selection too, not just a fixed beat
+const CACHE_VERSION = "endless-v27";  // v27: Random shift level no longer touched by Randomize or Evolution
 
 const PRECACHE = [
   "./",
