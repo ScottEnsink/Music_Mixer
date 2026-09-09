@@ -206,7 +206,7 @@
   <header>
     <h1>Endless<span>.</span></h1>
     <div class="tag">generative ambient &middot; no samples &middot; no loops</div>
-    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T13:43:00-04:00">Sep 9, 2026, 1:43 PM</time></div>
+    <div class="updated">Updated <time id="updatedTime" datetime="2026-09-09T13:44:00-04:00">Sep 9, 2026, 1:44 PM</time></div>
   </header>
 
   <div class="transport">
@@ -435,7 +435,7 @@
 const PARAMS = {
   // harmony
   chordRootSecs: { value: 26, fmt: v => v.toFixed(0) + " s" },
-  noteHoldBeats: { value: 4,  fmt: v => v.toFixed(0) + " beats" },
+  noteHoldBeats: { value: 16, fmt: v => v.toFixed(0) + " beats" },
   register:   { value: -12,   fmt: v => (v > 0 ? "+" : "") + v.toFixed(0) + " st" },
   // tone
   brightness: { value: 0.52, fmt: v => hzLabel(brightnessHz(v)) },
@@ -450,7 +450,7 @@ const PARAMS = {
   organ:      { value: 0,    fmt: pct },
   violin:     { value: 0,    fmt: pct },
   frenchHorn: { value: 0,    fmt: pct },
-  doubleBass: { value: 0,    fmt: pct },
+  doubleBass: { value: 0.5,  fmt: pct },
   // bells
   bells:      { value: 0.5,  fmt: pct },
   density:    { value: 0.35, fmt: v => (bellsPerMin(v)).toFixed(1) + " /min" },

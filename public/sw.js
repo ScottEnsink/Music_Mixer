@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v15";  // v15: new Double bass instrument in Instruments panel
+const CACHE_VERSION = "endless-v16";  // v16: new defaults - note hold 16 beats, double bass 50%
 
 const PRECACHE = [
   "./",
