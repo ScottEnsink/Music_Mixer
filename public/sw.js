@@ -9,7 +9,7 @@
  * Bump CACHE_VERSION whenever you deploy, so old entries get cleaned out.
  */
 
-const CACHE_VERSION = "endless-v30";  // v30: move Texture into Space and remove Layers
+const CACHE_VERSION = "endless-v34";  // v34: exempt Master volume from Hold UI
 
 const PRECACHE = [
   "./",
